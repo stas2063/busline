@@ -1,1 +1,639 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busline — ближайший транспорт</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2QbM90ZvFB8Q/nk0bQdG8VQPJL3JJAzvWc2xC3s="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg: #0c111d;
+      --card: #111827;
+      --accent: #22c55e;
+      --accent-2: #3b82f6;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
 
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1), transparent 30%),
+        radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.12), transparent 25%), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px clamp(16px, 4vw, 48px);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(10px);
+      background: rgba(12, 17, 29, 0.85);
+      z-index: 5;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand span {
+      padding: 6px 12px;
+      border-radius: 12px;
+      background: linear-gradient(120deg, #22c55e, #3b82f6);
+      color: #0c111d;
+      font-weight: 800;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      padding: 10px clamp(16px, 4vw, 48px) 28px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .hero-card {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+    }
+
+    p.lead {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .route-card {
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 14px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .route-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .direction {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .eta {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #e2e8f0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.12);
+      color: #bfdbfe;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      align-items: center;
+    }
+
+    .control label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 1rem;
+      transition: border 0.2s ease, transform 0.15s ease;
+    }
+
+    input:focus, select:focus, button:focus {
+      outline: none;
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button.primary {
+      background: linear-gradient(120deg, #22c55e, #16a34a);
+      border: none;
+      color: #0c111d;
+      box-shadow: 0 10px 30px rgba(34, 197, 94, 0.35);
+    }
+
+    button.secondary {
+      background: rgba(59, 130, 246, 0.16);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #dbeafe;
+    }
+
+    .toggle-group {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .toggle-group button {
+      width: auto;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      padding: 10px 14px;
+      color: var(--muted);
+    }
+
+    .toggle-group button.active {
+      background: linear-gradient(120deg, #3b82f6, #22c55e);
+      color: #0c111d;
+      font-weight: 800;
+      box-shadow: 0 12px 24px rgba(59, 130, 246, 0.25);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-item {
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.02);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .list-item .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .status.warning { color: var(--warning); }
+    .status.danger { color: var(--danger); }
+
+    .map-panel {
+      min-height: 360px;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+      border-radius: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .small {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 720px) {
+      header { position: sticky; }
+      .layout { padding: 10px 16px 24px; }
+      .hero-card { grid-template-columns: 1fr; }
+      #map { min-height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><span>Busline</span> ближайший транспорт</div>
+    <div class="badge">Включите геолокацию для точных подсказок</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel hero-card">
+      <div>
+        <h1>Прямо сейчас рядом</h1>
+        <p class="lead">Выберите остановку, и мы подскажем транспорт, который движется в вашу сторону.</p>
+        <div class="route-card" id="hero-card">
+          <div>
+            <div class="route-name" id="hero-route">Нет выбранного маршрута</div>
+            <div class="direction" id="hero-direction">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="eta" id="hero-eta">--</div>
+            <div class="pill" id="hero-status">Ожидание данных</div>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="control">
+          <label for="stop-input">Остановка</label>
+          <input id="stop-input" type="text" placeholder="Например, Проспект Мира" />
+        </div>
+        <div class="control">
+          <label for="route-select">Маршрут</label>
+          <select id="route-select"></select>
+        </div>
+        <div class="control">
+          <label>Направление</label>
+          <div class="toggle-group" id="direction-toggle">
+            <button data-dir="to" class="active">В мою сторону</button>
+            <button data-dir="from">Из моей стороны</button>
+          </div>
+        </div>
+        <div class="control" style="display:flex; gap:8px;">
+          <button id="refresh" class="secondary" style="flex:1">Обновить</button>
+          <button id="favorite" class="primary" style="flex:1">В избранное</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <h2 style="margin:0">Ближайшие прибытия</h2>
+        <span class="small" id="updated-at">—</span>
+      </div>
+      <div class="list" id="arrival-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <h2 style="margin:0">Избранные остановки</h2>
+        <span class="small">Хранится локально</span>
+      </div>
+      <div class="list" id="favorites"></div>
+    </section>
+
+    <section class="panel map-panel">
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-pMprKqM+zM38fKZkVOkzF0QYJ1bJa6k9Yp5iZ3dP+Po="
+    crossorigin=""
+  ></script>
+  <script>
+    const API_KEY = "595fce36-b6f8-4afe-9ffe-209df2d8f9c4";
+    const DEFAULT_COORDS = { lat: 55.751244, lon: 37.618423 }; // Москва
+    const arrivalListEl = document.getElementById("arrival-list");
+    const updatedAtEl = document.getElementById("updated-at");
+    const routeSelectEl = document.getElementById("route-select");
+    const directionToggleEl = document.getElementById("direction-toggle");
+    const heroRouteEl = document.getElementById("hero-route");
+    const heroDirectionEl = document.getElementById("hero-direction");
+    const heroEtaEl = document.getElementById("hero-eta");
+    const heroStatusEl = document.getElementById("hero-status");
+    const favoritesEl = document.getElementById("favorites");
+    const stopInputEl = document.getElementById("stop-input");
+
+    const mockStops = [
+      { id: "stop_1", name: "Проспект Мира", coords: { lat: 55.779, lon: 37.632 } },
+      { id: "stop_2", name: "Чистые пруды", coords: { lat: 55.765, lon: 37.638 } },
+      { id: "stop_3", name: "Тверская", coords: { lat: 55.765, lon: 37.605 } }
+    ];
+
+    const mockTransport = [
+      { route: "24 (в центр)", eta: 4, direction: "to", stopId: "stop_1", lat: 55.7795, lon: 37.634 },
+      { route: "42 (из центра)", eta: 9, direction: "from", stopId: "stop_1", lat: 55.778, lon: 37.630 },
+      { route: "A2 (в центр)", eta: 3, direction: "to", stopId: "stop_2", lat: 55.764, lon: 37.639 },
+      { route: "A2 (из центра)", eta: 11, direction: "from", stopId: "stop_2", lat: 55.766, lon: 37.637 },
+      { route: "15 (в центр)", eta: 7, direction: "to", stopId: "stop_3", lat: 55.764, lon: 37.604 },
+      { route: "15 (из центра)", eta: 12, direction: "from", stopId: "stop_3", lat: 55.766, lon: 37.606 }
+    ];
+
+    let map;
+    let stopMarkers = [];
+    let transportMarkers = [];
+
+    const favoriteStops = new Set(JSON.parse(localStorage.getItem("busline:favs") || "[]"));
+
+    function init() {
+      populateRoutes();
+      initMap();
+      attachEvents();
+      getUserLocation();
+      renderFavorites();
+      updateArrivalList();
+    }
+
+    function populateRoutes() {
+      routeSelectEl.innerHTML = mockStops
+        .map((stop) => `<option value="${stop.id}">${stop.name}</option>`)
+        .join("");
+      routeSelectEl.value = mockStops[0].id;
+      stopInputEl.value = mockStops[0].name;
+    }
+
+    function attachEvents() {
+      document.getElementById("refresh").addEventListener("click", () => updateArrivalList(true));
+      document.getElementById("favorite").addEventListener("click", toggleFavorite);
+      routeSelectEl.addEventListener("change", handleStopChange);
+      stopInputEl.addEventListener("input", handleStopInput);
+      directionToggleEl.addEventListener("click", (e) => {
+        if (e.target.tagName === "BUTTON") {
+          [...directionToggleEl.children].forEach((btn) => btn.classList.remove("active"));
+          e.target.classList.add("active");
+          updateArrivalList();
+        }
+      });
+    }
+
+    function handleStopChange() {
+      const selected = mockStops.find((s) => s.id === routeSelectEl.value);
+      stopInputEl.value = selected ? selected.name : "";
+      flyToStop(selected);
+      updateArrivalList();
+    }
+
+    function handleStopInput() {
+      const match = mockStops.find((s) => s.name.toLowerCase().includes(stopInputEl.value.toLowerCase()));
+      if (match) {
+        routeSelectEl.value = match.id;
+      }
+    }
+
+    async function getUserLocation() {
+      if (!navigator.geolocation) {
+        setStatus("Геолокация недоступна", "warning");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setStatus("Обновляем данные по вашей геолокации", "info");
+          map.setView([latitude, longitude], 14);
+          addUserMarker(latitude, longitude);
+          await updateArrivalList(true, { lat: latitude, lon: longitude });
+        },
+        (err) => {
+          console.warn(err);
+          setStatus("Не удалось получить геолокацию, используем центр города", "warning");
+          map.setView([DEFAULT_COORDS.lat, DEFAULT_COORDS.lon], 13);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+
+    function setStatus(text, tone = "info") {
+      heroStatusEl.textContent = text;
+      heroStatusEl.style.background = tone === "danger"
+        ? "rgba(239, 68, 68, 0.15)"
+        : tone === "warning"
+        ? "rgba(245, 158, 11, 0.18)"
+        : "rgba(59, 130, 246, 0.16)";
+      heroStatusEl.style.color = tone === "danger" ? "#fecdd3" : tone === "warning" ? "#fef9c3" : "#bfdbfe";
+    }
+
+    async function fetchNearbyTransport(stopId, coords) {
+      // Заготовка под реальный запрос. Здесь оставляем пример формата.
+      // const url = `https://api.rasp.yandex.net/v3.0/nearest_stations/?apikey=${API_KEY}&format=json&lat=${coords.lat}&lon=${coords.lon}&distance=1000`;
+      // const response = await fetch(url);
+      // const data = await response.json();
+      // return normalize(data);
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(mockTransport.filter((t) => t.stopId === stopId)), 300);
+      });
+    }
+
+    async function updateArrivalList(force = false, coords = DEFAULT_COORDS) {
+      const stopId = routeSelectEl.value;
+      const selectedDirection = directionToggleEl.querySelector(".active").dataset.dir;
+      setStatus(force ? "Обновляем данные..." : "Данные актуальны", "info");
+      const transport = await fetchNearbyTransport(stopId, coords);
+      const filtered = transport.filter((t) => t.direction === selectedDirection);
+      renderArrivals(filtered);
+      renderMapMarkers(stopId, filtered);
+      const best = filtered.sort((a, b) => a.eta - b.eta)[0];
+      if (best) {
+        heroRouteEl.textContent = best.route;
+        heroDirectionEl.textContent = best.direction === "to" ? "Движется к вам" : "Уходит от вас";
+        heroEtaEl.textContent = `${best.eta} мин`;
+        setStatus(best.eta < 5 ? "Поторопитесь" : "Можно успеть", best.eta < 3 ? "danger" : best.eta < 7 ? "warning" : "info");
+      } else {
+        heroRouteEl.textContent = "Нет подходящего транспорта";
+        heroDirectionEl.textContent = "Попробуйте выбрать другое направление";
+        heroEtaEl.textContent = "--";
+        setStatus("Нет данных", "warning");
+      }
+      updatedAtEl.textContent = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderArrivals(list) {
+      if (!list.length) {
+        arrivalListEl.innerHTML = `<div class="empty">Нет данных по выбранному направлению</div>`;
+        return;
+      }
+      arrivalListEl.innerHTML = list
+        .sort((a, b) => a.eta - b.eta)
+        .map(
+          (item) => `
+            <div class="list-item">
+              <div>
+                <div class="route-name">${item.route}</div>
+                <div class="meta">
+                  <span>${item.direction === "to" ? "В вашу сторону" : "Из вашей стороны"}</span>
+                  <span>ETA: ${item.eta} мин</span>
+                </div>
+              </div>
+              <div class="pill">${item.eta < 5 ? "Скоро" : "В пути"}</div>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    function initMap() {
+      map = L.map("map").setView([DEFAULT_COORDS.lat, DEFAULT_COORDS.lon], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
+      renderStopMarkers();
+    }
+
+    function renderStopMarkers() {
+      stopMarkers.forEach((m) => map.removeLayer(m));
+      stopMarkers = mockStops.map((stop) =>
+        L.marker([stop.coords.lat, stop.coords.lon], { title: stop.name })
+          .addTo(map)
+          .bindPopup(`<strong>${stop.name}</strong> <br> Tap, чтобы выбрать`)
+          .on("click", () => {
+            routeSelectEl.value = stop.id;
+            stopInputEl.value = stop.name;
+            updateArrivalList(true);
+          })
+      );
+    }
+
+    function renderMapMarkers(stopId, transport) {
+      transportMarkers.forEach((m) => map.removeLayer(m));
+      transportMarkers = transport.map((item) =>
+        L.circleMarker([item.lat, item.lon], {
+          radius: 10,
+          color: item.direction === "to" ? "#22c55e" : "#3b82f6",
+          fillColor: item.direction === "to" ? "#22c55e" : "#3b82f6",
+          fillOpacity: 0.7
+        })
+          .addTo(map)
+          .bindPopup(`<strong>${item.route}</strong><br>Прибудет через ${item.eta} мин`)
+      );
+      const stop = mockStops.find((s) => s.id === stopId);
+      if (stop) map.setView([stop.coords.lat, stop.coords.lon], 14);
+    }
+
+    function flyToStop(stop) {
+      if (!stop) return;
+      map.flyTo([stop.coords.lat, stop.coords.lon], 14, { duration: 0.6 });
+    }
+
+    function addUserMarker(lat, lon) {
+      L.circle([lat, lon], {
+        radius: 80,
+        color: "#22c55e",
+        fillColor: "#22c55e",
+        fillOpacity: 0.12
+      }).addTo(map).bindPopup("Вы здесь").openPopup();
+    }
+
+    function toggleFavorite() {
+      const stopId = routeSelectEl.value;
+      if (favoriteStops.has(stopId)) {
+        favoriteStops.delete(stopId);
+      } else {
+        favoriteStops.add(stopId);
+      }
+      localStorage.setItem("busline:favs", JSON.stringify([...favoriteStops]));
+      renderFavorites();
+    }
+
+    function renderFavorites() {
+      if (!favoriteStops.size) {
+        favoritesEl.innerHTML = '<div class="empty">Добавьте остановку, чтобы быстро к ней возвращаться</div>';
+        return;
+      }
+      favoritesEl.innerHTML = [...favoriteStops]
+        .map((id) => mockStops.find((s) => s.id === id))
+        .filter(Boolean)
+        .map(
+          (stop) => `
+            <div class="list-item">
+              <div>
+                <div class="route-name">${stop.name}</div>
+                <div class="meta">${stop.coords.lat.toFixed(3)}, ${stop.coords.lon.toFixed(3)}</div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="secondary" onclick="selectFavorite('${stop.id}')">Открыть</button>
+                <button class="secondary" onclick="removeFavorite('${stop.id}')">Убрать</button>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    function selectFavorite(id) {
+      routeSelectEl.value = id;
+      const stop = mockStops.find((s) => s.id === id);
+      stopInputEl.value = stop ? stop.name : "";
+      flyToStop(stop);
+      updateArrivalList(true);
+    }
+
+    function removeFavorite(id) {
+      favoriteStops.delete(id);
+      localStorage.setItem("busline:favs", JSON.stringify([...favoriteStops]));
+      renderFavorites();
+    }
+
+    init();
+  </script>
+</body>
+</html>
