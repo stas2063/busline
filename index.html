@@ -12,119 +12,81 @@
   />
   <style>
     :root {
-      --bg: #0c111d;
-      --card: #111827;
+      --bg: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.16), transparent 32%),
+        radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.18), transparent 30%),
+        linear-gradient(160deg, #0b0e1b 0%, #0f172a 100%);
+      --card: rgba(255, 255, 255, 0.06);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --muted-2: #94a3b8;
       --accent: #22c55e;
       --accent-2: #3b82f6;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
       --danger: #ef4444;
       --warning: #f59e0b;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-      background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1), transparent 30%),
-        radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.12), transparent 25%), var(--bg);
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-    }
-
-    header {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px clamp(16px, 4vw, 48px);
-      position: sticky;
-      top: 0;
-      backdrop-filter: blur(10px);
-      background: rgba(12, 17, 29, 0.85);
-      z-index: 5;
+      justify-content: center;
+      padding: 12px;
     }
 
-    .brand {
-      font-weight: 700;
-      font-size: 1.2rem;
-      letter-spacing: 0.02em;
+    .phone {
+      width: min(460px, 100%);
+      min-height: 100vh;
+      position: relative;
       display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand span {
-      padding: 6px 12px;
-      border-radius: 12px;
-      background: linear-gradient(120deg, #22c55e, #3b82f6);
-      color: #0c111d;
-      font-weight: 800;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 16px;
-      padding: 10px clamp(16px, 4vw, 48px) 28px;
-    }
-
-    .panel {
-      background: var(--card);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    }
-
-    .hero-card {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      flex-direction: column;
       gap: 14px;
+      padding: 12px;
+    }
+
+    .top-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      color: #e0f2fe;
+      font-weight: 600;
     }
 
     h1 {
-      margin: 0 0 6px;
-      font-size: 1.5rem;
+      margin: 0 0 4px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
     }
 
     p.lead {
-      margin: 0;
+      margin: 0 0 10px;
       color: var(--muted);
+      font-size: 0.98rem;
     }
 
-    .route-card {
-      background: rgba(34, 197, 94, 0.08);
-      border: 1px solid rgba(34, 197, 94, 0.2);
-      border-radius: 14px;
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
       padding: 14px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px;
-      align-items: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
     }
 
-    .route-name {
+    .hero-card {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 1.1rem;
-    }
-
-    .direction {
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    .eta {
-      font-size: 1.6rem;
-      font-weight: 800;
-      color: #e2e8f0;
+      flex-direction: column;
+      gap: 12px;
     }
 
     .pill {
@@ -133,52 +95,58 @@
       gap: 6px;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(59, 130, 246, 0.12);
-      color: #bfdbfe;
-      font-weight: 600;
+      background: rgba(34, 197, 94, 0.18);
+      color: #bbf7d0;
+      font-weight: 700;
       font-size: 0.95rem;
     }
 
-    .controls {
+    .route-card {
+      background: linear-gradient(145deg, rgba(34, 197, 94, 0.16), rgba(59, 130, 246, 0.14));
+      border: 1px solid rgba(34, 197, 94, 0.18);
+      border-radius: 16px;
+      padding: 12px 14px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
       align-items: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .control label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 0.9rem;
+    .route-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.1rem;
     }
+
+    .direction { color: var(--muted-2); font-size: 0.95rem; }
+    .eta { font-size: 1.6rem; font-weight: 900; }
+
+    .controls { display: flex; flex-direction: column; gap: 10px; }
+
+    label { color: var(--muted); font-size: 0.9rem; display: block; margin-bottom: 6px; }
 
     input, select, button {
       width: 100%;
       padding: 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(255, 255, 255, 0.04);
       color: var(--text);
       font-size: 1rem;
-      transition: border 0.2s ease, transform 0.15s ease;
     }
 
-    input:focus, select:focus, button:focus {
-      outline: none;
-      border-color: rgba(59, 130, 246, 0.5);
-    }
+    input:focus, select:focus, button:focus { outline: none; border-color: rgba(59, 130, 246, 0.6); }
 
-    button {
-      cursor: pointer;
-      font-weight: 700;
-    }
+    button { cursor: pointer; font-weight: 700; }
 
     button.primary {
-      background: linear-gradient(120deg, #22c55e, #16a34a);
+      background: linear-gradient(135deg, #22c55e, #16a34a);
       border: none;
-      color: #0c111d;
-      box-shadow: 0 10px 30px rgba(34, 197, 94, 0.35);
+      color: #041507;
+      box-shadow: 0 12px 28px rgba(34, 197, 94, 0.32);
     }
 
     button.secondary {
@@ -188,172 +156,132 @@
     }
 
     .toggle-group {
-      display: inline-flex;
-      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      background: rgba(255, 255, 255, 0.05);
       padding: 4px;
-      border-radius: 999px;
+      border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .toggle-group button {
-      width: auto;
-      border-radius: 999px;
+      width: 100%;
+      border-radius: 12px;
       border: none;
       background: transparent;
-      padding: 10px 14px;
+      padding: 10px 0;
       color: var(--muted);
     }
 
     .toggle-group button.active {
       background: linear-gradient(120deg, #3b82f6, #22c55e);
-      color: #0c111d;
+      color: #03131e;
       font-weight: 800;
-      box-shadow: 0 12px 24px rgba(59, 130, 246, 0.25);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);
     }
 
-    .list {
-      display: grid;
-      gap: 10px;
-    }
+    .list { display: grid; gap: 10px; }
+
+    .section-title { display: flex; justify-content: space-between; align-items: center; }
+    .small { color: var(--muted-2); font-size: 0.9rem; }
 
     .list-item {
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 8px;
       align-items: center;
     }
 
-    .list-item .meta {
-      color: var(--muted);
-      font-size: 0.9rem;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
+    .list-item .meta { color: var(--muted-2); font-size: 0.9rem; display: flex; gap: 12px; }
 
-    .status.warning { color: var(--warning); }
-    .status.danger { color: var(--danger); }
+    .empty { text-align: center; color: var(--muted-2); padding: 14px; border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 14px; }
 
-    .map-panel {
-      min-height: 360px;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    #map {
-      height: 100%;
-      width: 100%;
+    details.map-wrap {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
+      padding: 12px;
     }
 
-    .section-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .small {
-      font-size: 0.9rem;
+    details.map-wrap summary {
+      cursor: pointer;
+      font-weight: 700;
       color: var(--muted);
     }
 
-    .empty {
-      text-align: center;
-      color: var(--muted);
-      padding: 16px;
-      border: 1px dashed rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    @media (max-width: 720px) {
-      header { position: sticky; }
-      .layout { padding: 10px 16px 24px; }
-      .hero-card { grid-template-columns: 1fr; }
-      #map { min-height: 320px; }
-    }
+    #map { width: 100%; height: 260px; border-radius: 14px; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand"><span>Busline</span> ближайший транспорт</div>
-    <div class="badge">Включите геолокацию для точных подсказок</div>
-  </header>
+  <div class="phone">
+    <div class="top-chip">📍 Вы здесь: Ул. Ленина, 45</div>
 
-  <main class="layout">
-    <section class="panel hero-card">
+    <section class="card hero-card">
       <div>
-        <h1>Прямо сейчас рядом</h1>
-        <p class="lead">Выберите остановку, и мы подскажем транспорт, который движется в вашу сторону.</p>
-        <div class="route-card" id="hero-card">
-          <div>
-            <div class="route-name" id="hero-route">Нет выбранного маршрута</div>
-            <div class="direction" id="hero-direction">—</div>
-          </div>
-          <div style="text-align:right">
-            <div class="eta" id="hero-eta">--</div>
-            <div class="pill" id="hero-status">Ожидание данных</div>
-          </div>
-        </div>
+        <h1>Прямо сейчас рядом 🔥</h1>
+        <p class="lead">Маршрут в скобках показывает направление, сразу видно — в вашу сторону или нет.</p>
+        <div class="pill" id="hero-status">Ожидание данных</div>
       </div>
-      <div class="controls">
-        <div class="control">
-          <label for="stop-input">Остановка</label>
-          <input id="stop-input" type="text" placeholder="Например, Проспект Мира" />
+
+      <div class="route-card" id="hero-card">
+        <div>
+          <div class="route-name" id="hero-route">Нет выбранного маршрута</div>
+          <div class="direction" id="hero-direction">—</div>
         </div>
-        <div class="control">
-          <label for="route-select">Маршрут</label>
-          <select id="route-select"></select>
-        </div>
-        <div class="control">
-          <label>Направление</label>
-          <div class="toggle-group" id="direction-toggle">
-            <button data-dir="to" class="active">В мою сторону</button>
-            <button data-dir="from">Из моей стороны</button>
-          </div>
-        </div>
-        <div class="control" style="display:flex; gap:8px;">
-          <button id="refresh" class="secondary" style="flex:1">Обновить</button>
-          <button id="favorite" class="primary" style="flex:1">В избранное</button>
+        <div style="text-align:right">
+          <div class="eta" id="hero-eta">--</div>
+          <div class="direction" style="font-weight:700; color:#c7f9cc">минут</div>
         </div>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="section-title">
-        <h2 style="margin:0">Ближайшие прибытия</h2>
+    <section class="card controls">
+      <div>
+        <label for="stop-input">Остановка</label>
+        <input id="stop-input" type="text" placeholder="Поиск остановки..." />
+      </div>
+      <div>
+        <label for="route-select">Маршрут</label>
+        <select id="route-select"></select>
+      </div>
+      <div>
+        <label>Направление</label>
+        <div class="toggle-group" id="direction-toggle">
+          <button data-dir="to" class="active">В мою сторону</button>
+          <button data-dir="from">Из моей стороны</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="refresh" class="secondary" style="flex:1">Обновить</button>
+        <button id="favorite" class="primary" style="flex:1">В избранное</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h2 style="margin:0; font-size:1.05rem;">Ближайшие прибытия</h2>
         <span class="small" id="updated-at">—</span>
       </div>
       <div class="list" id="arrival-list"></div>
     </section>
 
-    <section class="panel">
-      <div class="section-title">
-        <h2 style="margin:0">Избранные остановки</h2>
+    <section class="card">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h2 style="margin:0; font-size:1.05rem;">Избранные</h2>
         <span class="small">Хранится локально</span>
       </div>
       <div class="list" id="favorites"></div>
     </section>
 
-    <section class="panel map-panel">
+    <details class="map-wrap" open>
+      <summary>Карта остановок и транспорта</summary>
       <div id="map"></div>
-    </section>
-  </main>
+    </details>
+  </div>
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
