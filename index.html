@@ -1,1 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busline — ближайший транспорт</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2QbM90ZvFB8Q/nk0bQdG8VQPJL3JJAzvWc2xC3s="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 20% 20%, rgba(109, 40, 217, 0.16), transparent 32%),
+        radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.18), transparent 30%),
+        linear-gradient(160deg, #0b0e1b 0%, #0f172a 100%);
+      --card: rgba(255, 255, 255, 0.06);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --muted-2: #94a3b8;
+      --accent: #22c55e;
+      --accent-2: #3b82f6;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
 
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .phone {
+      width: min(460px, 100%);
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 12px;
+    }
+
+    .top-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      color: #e0f2fe;
+      font-weight: 600;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    p.lead {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.18);
+      color: #bbf7d0;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .route-card {
+      background: linear-gradient(145deg, rgba(34, 197, 94, 0.16), rgba(59, 130, 246, 0.14));
+      border: 1px solid rgba(34, 197, 94, 0.18);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .route-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .direction { color: var(--muted-2); font-size: 0.95rem; }
+    .eta { font-size: 1.6rem; font-weight: 900; }
+
+    .controls { display: flex; flex-direction: column; gap: 10px; }
+
+    label { color: var(--muted); font-size: 0.9rem; display: block; margin-bottom: 6px; }
+
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input:focus, select:focus, button:focus { outline: none; border-color: rgba(59, 130, 246, 0.6); }
+
+    button { cursor: pointer; font-weight: 700; }
+
+    button.primary {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border: none;
+      color: #041507;
+      box-shadow: 0 12px 28px rgba(34, 197, 94, 0.32);
+    }
+
+    button.secondary {
+      background: rgba(59, 130, 246, 0.16);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #dbeafe;
+    }
+
+    .toggle-group,
+    .terminus-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .toggle-group button,
+    .terminus-group button {
+      width: 100%;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      padding: 10px 0;
+      color: var(--muted);
+    }
+
+    .toggle-group button.active,
+    .terminus-group button.active {
+      background: linear-gradient(120deg, #3b82f6, #22c55e);
+      color: #03131e;
+      font-weight: 800;
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);
+    }
+
+    .list { display: grid; gap: 10px; }
+
+    .section-title { display: flex; justify-content: space-between; align-items: center; }
+    .small { color: var(--muted-2); font-size: 0.9rem; }
+
+    .list-item {
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .list-item .meta { color: var(--muted-2); font-size: 0.9rem; display: flex; gap: 12px; }
+
+    .empty { text-align: center; color: var(--muted-2); padding: 14px; border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 14px; }
+
+    .input-group { position: relative; }
+
+    .hints {
+      position: absolute;
+      z-index: 10;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .hints.visible { display: block; }
+
+    .hint-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .hint-item:last-child { border-bottom: none; }
+
+    .hint-item:hover { background: rgba(255, 255, 255, 0.06); }
+
+    details.map-wrap {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    details.map-wrap summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    #map { width: 100%; height: 260px; border-radius: 14px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="top-chip">📍 Город: Уфа — данные только по Уфе</div>
+
+    <section class="card hero-card">
+      <div>
+        <h1>Прямо сейчас рядом 🔥</h1>
+        <p class="lead">После выбора маршрута покажем две конечные — выберите нужную, чтобы понять, куда едет.</p>
+        <div class="pill" id="hero-status">Ожидание данных</div>
+      </div>
+
+      <div class="route-card" id="hero-card">
+        <div>
+          <div class="route-name" id="hero-route">Нет выбранного маршрута</div>
+          <div class="direction" id="hero-direction">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="eta" id="hero-eta">--</div>
+          <div class="direction" style="font-weight:700; color:#c7f9cc">минут</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card controls">
+      <div class="input-group">
+        <label for="stop-input">Остановка</label>
+        <input id="stop-input" list="stop-suggest" type="text" placeholder="Поиск остановки..." autocomplete="off" />
+        <datalist id="stop-suggest"></datalist>
+        <div class="hints" id="stop-hints"></div>
+      </div>
+      <div class="input-group">
+        <label for="route-input">Номер маршрута</label>
+        <input
+          id="route-input"
+          type="text"
+          list="route-suggest"
+          placeholder="Введите номер маршрута цифрами"
+          autocomplete="off"
+          inputmode="numeric"
+          pattern="[0-9]{1,4}[А-Яа-яA-Za-z]?"
+        />
+        <datalist id="route-suggest"></datalist>
+        <div class="hints" id="route-hints"></div>
+      </div>
+      <div>
+        <label>Куда едет (конечная)</label>
+        <div class="terminus-group" id="terminus-options">
+          <div class="small" style="grid-column: 1 / -1; padding: 6px 8px;">Выберите маршрут, чтобы появились конечные</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="refresh" class="secondary" style="flex:1">Обновить</button>
+        <button id="favorite" class="primary" style="flex:1">В избранное</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h2 style="margin:0; font-size:1.05rem;">Ближайшие прибытия</h2>
+        <span class="small" id="updated-at">—</span>
+      </div>
+      <div class="list" id="arrival-list"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h2 style="margin:0; font-size:1.05rem;">Избранные</h2>
+        <span class="small">Хранится локально</span>
+      </div>
+      <div class="list" id="favorites"></div>
+    </section>
+
+    <details class="map-wrap" open>
+      <summary>Карта остановок и транспорта</summary>
+      <div id="map"></div>
+    </details>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-pMprKqM+zM38fKZkVOkzF0QYJ1bJa6k9Yp5iZ3dP+Po="
+    crossorigin=""
+  ></script>
+  <script>
+    const API_KEY = "9fba3df0-a072-4463-9166-6c1bc0da46e2"; // Static API Яндекс.Карт, используем для остановок/маршрутов
+    const CITY_NAME = "Уфа";
+    const DEFAULT_COORDS = { lat: 54.73876, lon: 55.97206 }; // Уфа, центр
+    const UFA_RADIUS_KM = 35;
+    let selectedStop = null;
+    let dynamicStopOptions = [];
+    const arrivalListEl = document.getElementById("arrival-list");
+    const updatedAtEl = document.getElementById("updated-at");
+    const routeInputEl = document.getElementById("route-input");
+    const routeSuggestEl = document.getElementById("route-suggest");
+    const routeHintsEl = document.getElementById("route-hints");
+    const terminusOptionsEl = document.getElementById("terminus-options");
+    const heroRouteEl = document.getElementById("hero-route");
+    const heroDirectionEl = document.getElementById("hero-direction");
+    const heroEtaEl = document.getElementById("hero-eta");
+    const heroStatusEl = document.getElementById("hero-status");
+    const favoritesEl = document.getElementById("favorites");
+    const stopInputEl = document.getElementById("stop-input");
+    const stopSuggestEl = document.getElementById("stop-suggest");
+    const stopHintsEl = document.getElementById("stop-hints");
+
+    const mockStops = [
+      { id: "stop_1", name: "Площадь Ленина (Уфа)", coords: { lat: 54.7349, lon: 55.9578 } },
+      { id: "stop_2", name: "Центральный рынок (Уфа)", coords: { lat: 54.7396, lon: 55.9729 } },
+      { id: "stop_3", name: "Гостиный двор (Уфа)", coords: { lat: 54.7409, lon: 55.985 } }
+    ];
+
+    const mockTransport = [
+      {
+        route: "18 (в центр)",
+        eta: 4,
+        direction: "to",
+        stopId: "stop_1",
+        lat: 54.7355,
+        lon: 55.9585,
+        terminus: "Уфимский кремль",
+        termini: ["Дема", "Уфимский кремль"]
+      },
+      {
+        route: "18 (из центра)",
+        eta: 11,
+        direction: "from",
+        stopId: "stop_1",
+        lat: 54.7341,
+        lon: 55.9571,
+        terminus: "Дема",
+        termini: ["Дема", "Уфимский кремль"]
+      },
+      {
+        route: "69 (в центр)",
+        eta: 5,
+        direction: "to",
+        stopId: "stop_2",
+        lat: 54.7396,
+        lon: 55.9734,
+        terminus: "Уфа-Арена",
+        termini: ["Сипайлово", "Уфа-Арена"]
+      },
+      {
+        route: "69 (из центра)",
+        eta: 9,
+        direction: "from",
+        stopId: "stop_2",
+        lat: 54.7392,
+        lon: 55.9718,
+        terminus: "Сипайлово",
+        termini: ["Сипайлово", "Уфа-Арена"]
+      },
+      {
+        route: "110с (в центр)",
+        eta: 7,
+        direction: "to",
+        stopId: "stop_3",
+        lat: 54.7412,
+        lon: 55.9856,
+        terminus: "ВДНХ-Экспо",
+        termini: ["Черниковка", "ВДНХ-Экспо"]
+      },
+      {
+        route: "110с (из центра)",
+        eta: 12,
+        direction: "from",
+        stopId: "stop_3",
+        lat: 54.7407,
+        lon: 55.9844,
+        terminus: "Черниковка",
+        termini: ["Черниковка", "ВДНХ-Экспо"]
+      },
+      {
+        route: "273 (в центр)",
+        eta: 6,
+        direction: "to",
+        stopId: "stop_2",
+        lat: 54.7399,
+        lon: 55.9731,
+        terminus: "Центр",
+        termini: ["Затон", "Центр"]
+      },
+      {
+        route: "273 (из центра)",
+        eta: 13,
+        direction: "from",
+        stopId: "stop_2",
+        lat: 54.7391,
+        lon: 55.9721,
+        terminus: "Затон",
+        termini: ["Затон", "Центр"]
+      }
+    ];
+
+    const ufaRouteNumbers = ["1", "10", "18", "21", "27", "69", "74", "110с", "163", "273"];
+
+    let map;
+    let stopMarkers = [];
+    let transportMarkers = [];
+    let selectedTerminus = null;
+    let availableRoutes = [];
+
+    const favoriteStops = new Set();
+
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+
+    function distanceKm(a, b) {
+      const R = 6371;
+      const dLat = deg2rad(b.lat - a.lat);
+      const dLon = deg2rad(b.lon - a.lon);
+      const lat1 = deg2rad(a.lat);
+      const lat2 = deg2rad(b.lat);
+      const sinLat = Math.sin(dLat / 2) ** 2;
+      const sinLon = Math.sin(dLon / 2) ** 2;
+      const a = sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function init() {
+      populateStops();
+      hydrateFavorites();
+      updateRouteSuggestions(mockTransport);
+      initMap();
+      attachEvents();
+      getUserLocation();
+      renderFavorites();
+      updateArrivalList();
+    }
+
+    function allStops() {
+      return [...mockStops, ...dynamicStopOptions];
+    }
+
+    function syncStopSuggest() {
+      stopSuggestEl.innerHTML = allStops()
+        .map((stop) => `<option value="${stop.name}" data-id="${stop.id}"></option>`)
+        .join("");
+    }
+
+    function renderStopHints(query = "") {
+      const q = query.toLowerCase();
+      const matches = (q
+        ? allStops().filter((stop) => stop.name.toLowerCase().includes(q))
+        : allStops()
+      ).slice(0, 6);
+      if (!matches.length) {
+        stopHintsEl.classList.remove("visible");
+        stopHintsEl.innerHTML = "";
+        return;
+      }
+      stopHintsEl.innerHTML = matches
+        .map(
+          (stop) => `
+            <div class="hint-item" data-id="${stop.id}">${stop.name}</div>
+          `
+        )
+        .join("");
+      stopHintsEl.classList.add("visible");
+    }
+
+    function setSelectedStop(stop) {
+      const fallback = mockStops[0];
+      selectedStop = stop || fallback;
+      stopInputEl.value = selectedStop.name;
+      stopHintsEl.classList.remove("visible");
+    }
+
+    function populateStops() {
+      syncStopSuggest();
+      setSelectedStop(mockStops[0]);
+    }
+
+    function attachEvents() {
+      document.getElementById("refresh").addEventListener("click", () => updateArrivalList(true));
+      document.getElementById("favorite").addEventListener("click", toggleFavorite);
+      stopInputEl.addEventListener("input", handleStopInput);
+      stopInputEl.addEventListener("focus", () => renderStopHints(stopInputEl.value.trim()));
+      stopInputEl.addEventListener("blur", () => setTimeout(() => stopHintsEl.classList.remove("visible"), 120));
+      routeInputEl.addEventListener("input", () => {
+        renderRouteHints(routeInputEl.value.trim());
+        updateArrivalList();
+      });
+      routeInputEl.addEventListener("focus", () => renderRouteHints(routeInputEl.value.trim()));
+      routeInputEl.addEventListener("blur", () => setTimeout(() => routeHintsEl.classList.remove("visible"), 120));
+      terminusOptionsEl.addEventListener("click", (e) => {
+        if (e.target.tagName === "BUTTON") {
+          selectedTerminus = e.target.dataset.terminus;
+          [...terminusOptionsEl.querySelectorAll("button")].forEach((btn) => btn.classList.remove("active"));
+          e.target.classList.add("active");
+          updateArrivalList();
+        }
+      });
+      stopHintsEl.addEventListener("click", (e) => {
+        const target = e.target.closest(".hint-item");
+        if (!target) return;
+        const stop = allStops().find((s) => s.id === target.dataset.id);
+        if (stop) {
+          setSelectedStop(stop);
+          flyToStop(stop);
+          updateArrivalList(true);
+        }
+        stopHintsEl.classList.remove("visible");
+      });
+      routeHintsEl.addEventListener("click", (e) => {
+        const target = e.target.closest(".hint-item");
+        if (!target?.dataset.route) return;
+        routeInputEl.value = target.dataset.route;
+        renderRouteHints(routeInputEl.value.trim());
+        updateArrivalList();
+        routeHintsEl.classList.remove("visible");
+      });
+    }
+
+    async function handleStopInput() {
+      const query = stopInputEl.value.trim();
+      renderStopHints(query);
+      const exactMatch = findStopByName(query);
+      if (exactMatch) {
+        setSelectedStop(exactMatch);
+        flyToStop(exactMatch);
+        updateArrivalList(true);
+        return;
+      }
+
+      if (query.length < 3) return;
+
+      const remote = await fetchStopSuggestions(query);
+      if (remote.length) {
+        const merged = [...dynamicStopOptions, ...remote];
+        dynamicStopOptions = Array.from(new Map(merged.map((s) => [s.id, s])).values());
+        syncStopSuggest();
+        renderStopHints(query);
+        const best = findStopByName(query) || remote[0];
+        setSelectedStop(best);
+        flyToStop(best);
+        updateArrivalList(true, best.coords);
+      }
+    }
+
+    async function getUserLocation() {
+      if (!navigator.geolocation) {
+        setStatus("Геолокация недоступна", "warning");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setStatus("Обновляем данные по вашей геолокации", "info");
+          map.setView([latitude, longitude], 14);
+          addUserMarker(latitude, longitude);
+          const nearbyStop = findNearestMockStop({ lat: latitude, lon: longitude });
+          if (nearbyStop) setSelectedStop(nearbyStop);
+          await updateArrivalList(true, { lat: latitude, lon: longitude });
+        },
+        (err) => {
+          console.warn(err);
+          setStatus("Не удалось получить геолокацию, используем центр Уфы", "warning");
+          map.setView([DEFAULT_COORDS.lat, DEFAULT_COORDS.lon], 13);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+
+    function setStatus(text, tone = "info") {
+      heroStatusEl.textContent = text;
+      heroStatusEl.style.background = tone === "danger"
+        ? "rgba(239, 68, 68, 0.15)"
+        : tone === "warning"
+        ? "rgba(245, 158, 11, 0.18)"
+        : "rgba(59, 130, 246, 0.16)";
+      heroStatusEl.style.color = tone === "danger" ? "#fecdd3" : tone === "warning" ? "#fef9c3" : "#bfdbfe";
+    }
+
+    function normalizeRouteId(routeText = "") {
+      const match = routeText.match(/^([\wА-Яа-я\d]+)/);
+      return (match ? match[1] : routeText).toLowerCase();
+    }
+
+    function updateRouteSuggestions(arrivals = []) {
+      const dynamicRoutes = Array.from(
+        new Set(arrivals.map((item) => normalizeRouteId(item.route)).filter(Boolean))
+      );
+      const routes = Array.from(new Set([...ufaRouteNumbers, ...dynamicRoutes]));
+      availableRoutes = routes;
+      routeSuggestEl.innerHTML = routes.map((r) => `<option value="${r}"></option>`).join("");
+      renderRouteHints(routeInputEl.value.trim());
+    }
+
+    function renderRouteHints(query = "") {
+      const q = query.toLowerCase();
+      const shouldShow = document.activeElement === routeInputEl || Boolean(q);
+      if (!shouldShow) {
+        routeHintsEl.classList.remove("visible");
+        routeHintsEl.innerHTML = "";
+        return;
+      }
+      const matches = (q
+        ? availableRoutes.filter((r) => r.toLowerCase().includes(q))
+        : availableRoutes
+      ).slice(0, 8);
+      if (!matches.length) {
+        routeHintsEl.innerHTML = '<div class="hint-item">Нет совпадений</div>';
+        routeHintsEl.classList.add("visible");
+        return;
+      }
+      routeHintsEl.innerHTML = matches.map((r) => `<div class="hint-item" data-route="${r}">${r}</div>`).join("");
+      routeHintsEl.classList.add("visible");
+    }
+
+    function extractTerminiFromTitle(title = "") {
+      const parts = title.split(/[-—–]/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length >= 2) return [parts[0], parts[parts.length - 1]];
+      return [];
+    }
+
+    function collectTermini(list = []) {
+      const termini = list
+        .flatMap((item) => item.termini || extractTerminiFromTitle(item.route))
+        .filter(Boolean);
+      return Array.from(new Set(termini));
+    }
+
+    function renderTerminusOptions(options = []) {
+      if (!options.length) {
+        terminusOptionsEl.innerHTML =
+          '<div class="small" style="grid-column: 1 / -1; padding: 6px 8px;">Введите номер маршрута, чтобы выбрать конечную</div>';
+        selectedTerminus = null;
+        return;
+      }
+      const unique = Array.from(new Set(options));
+      if (!selectedTerminus || !unique.includes(selectedTerminus)) {
+        selectedTerminus = unique[0];
+      }
+      terminusOptionsEl.innerHTML = unique
+        .map(
+          (opt) => `
+            <button data-terminus="${opt}" class="${selectedTerminus === opt ? "active" : ""}">
+              ${opt}
+            </button>
+          `
+        )
+        .join("");
+    }
+
+    function findStopByName(name = "") {
+      return allStops().find((s) => s.name.toLowerCase() === name.toLowerCase());
+    }
+
+    function findNearestMockStop(coords = DEFAULT_COORDS) {
+      return mockStops.reduce((best, curr) => {
+        const dist = distanceKm(coords, curr.coords);
+        if (!best || dist < best.dist) return { stop: curr, dist };
+        return best;
+      }, null)?.stop;
+    }
+
+    async function fetchStopSuggestions(query) {
+      try {
+        const url = new URL("https://search-maps.yandex.ru/v1/");
+        url.searchParams.set("apikey", API_KEY);
+        url.searchParams.set("text", `${query} ${CITY_NAME}`);
+        url.searchParams.set("lang", "ru_RU");
+        url.searchParams.set("type", "geo");
+        url.searchParams.set("results", 5);
+        url.searchParams.set("bbox", "55.7,54.6~56.2,55.1"); // Уфа окрестности
+
+        const res = await fetch(url, { headers: { Authorization: `Apikey ${API_KEY}` } });
+        if (!res.ok) throw new Error(`Stop search failed: ${res.status}`);
+        const json = await res.json();
+        const features = json.features || [];
+        return features
+          .map((f, idx) => {
+            const coords = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+            const name = f.properties?.name || f.properties?.description || `Остановка ${idx + 1}`;
+            const address = f.properties?.CompanyMetaData?.address || f.properties?.description || "";
+            const locality = (f.properties?.GeoObjectMetaData?.Address?.Components || [])
+              .find((c) => c.kind === "locality")?.name;
+            const cityString = `${address} ${locality || ""} ${f.properties?.description || ""}`.toLowerCase();
+            const withinUfa = distanceKm(DEFAULT_COORDS, coords) <= UFA_RADIUS_KM;
+            if (!cityString.includes(CITY_NAME.toLowerCase()) && !withinUfa) return null;
+            return {
+              id: `remote_${f.id || idx}`,
+              name,
+              coords
+            };
+          })
+          .filter(Boolean);
+      } catch (error) {
+        console.warn("stop search fallback", error);
+        return [];
+      }
+    }
+
+    async function fetchNearbyTransport(stopId = selectedStop?.id, coords) {
+      const stop = allStops().find((s) => s.id === stopId) || selectedStop || mockStops[0];
+      const point = coords || stop?.coords || DEFAULT_COORDS;
+      const authHeaders = { Authorization: `Apikey ${API_KEY}` };
+
+      try {
+        const nearestUrl = new URL("https://api.rasp.yandex.net/v3.0/nearest_stations/");
+        nearestUrl.searchParams.set("apikey", API_KEY);
+        nearestUrl.searchParams.set("format", "json");
+        nearestUrl.searchParams.set("lat", point.lat);
+        nearestUrl.searchParams.set("lon", point.lon);
+        nearestUrl.searchParams.set("distance", 1500);
+        nearestUrl.searchParams.set("transport_types", "bus,tram,trol");
+        nearestUrl.searchParams.set("lang", "ru_RU");
+
+        const nearestRes = await fetch(nearestUrl, { headers: authHeaders });
+        if (!nearestRes.ok) throw new Error(`Nearest request failed: ${nearestRes.status}`);
+        const nearest = await nearestRes.json();
+        const cityNameLower = CITY_NAME.toLowerCase();
+        const stations = (nearest.stations || [])
+          .filter((s) => Boolean(s))
+          .filter((s) => {
+            const coords = { lat: s.latitude, lon: s.longitude };
+            return distanceKm(DEFAULT_COORDS, coords) <= UFA_RADIUS_KM;
+          });
+        const cityStation = stations.find((s) => {
+          const title = (s.title || "").toLowerCase();
+          const settlement = (s.settlement || "").toLowerCase();
+          return title.includes(cityNameLower) || settlement.includes(cityNameLower);
+        });
+        const station = cityStation || stations[0];
+        if (!station?.code) throw new Error("Нет ближайших станций от API");
+        if (!cityStation) throw new Error("API вернул станции вне Уфы");
+
+        const scheduleUrl = new URL("https://api.rasp.yandex.net/v3.0/schedule/");
+        scheduleUrl.searchParams.set("apikey", API_KEY);
+        scheduleUrl.searchParams.set("format", "json");
+        scheduleUrl.searchParams.set("station", station.code);
+        scheduleUrl.searchParams.set("transport_types", "bus,tram,trol");
+        scheduleUrl.searchParams.set("event", "departure");
+
+        const scheduleRes = await fetch(scheduleUrl, { headers: authHeaders });
+        if (!scheduleRes.ok) throw new Error(`Schedule request failed: ${scheduleRes.status}`);
+        const schedule = await scheduleRes.json();
+
+        if ((station.settlement || "").toLowerCase() !== cityNameLower) {
+          throw new Error("Станция не относится к Уфе");
+        }
+
+        const now = Date.now();
+        const arrivals = (schedule.schedule || [])
+          .map((item) => {
+            const etaMinutes = Math.max(
+              0,
+              Math.round((new Date(item.departure).getTime() - now) / 60000)
+            );
+            const directionName = (item.thread?.direction || "").toLowerCase();
+            const goesToCenter = directionName.includes("центр") || directionName.includes("center");
+            const termini = extractTerminiFromTitle(item.thread?.title || item.thread?.short_title || "");
+            const terminus = termini[1] || item.thread?.direction || "Конечная не указана";
+            return {
+              route: `${item.thread?.number || item.thread?.title || "Маршрут"} (${termini.join(" — ") || directionName || "конечная"})`,
+              eta: etaMinutes,
+              direction: goesToCenter ? "to" : "from",
+              terminus,
+              termini,
+              stopId: stop.id,
+              lat: station.latitude,
+              lon: station.longitude
+            };
+          })
+          .filter((item) => Number.isFinite(item.eta))
+          .slice(0, 10);
+
+        if (arrivals.length) {
+          setStatus(`Данные по API Яндекс: ${station.title} (${CITY_NAME})`, "info");
+          return arrivals;
+        }
+        throw new Error("Пустое расписание");
+      } catch (error) {
+        console.warn("API fallback:", error);
+        setStatus("Используем локальные данные по Уфе (ошибка API)", "warning");
+        return new Promise((resolve) => {
+          setTimeout(
+            () =>
+              resolve(
+                mockTransport.filter((t) => {
+                  const fallback = stop?.id || findNearestMockStop(point)?.id || mockStops[0].id;
+                  return t.stopId === fallback;
+                })
+              ),
+            300
+          );
+        });
+      }
+    }
+
+    async function updateArrivalList(force = false, coords = DEFAULT_COORDS) {
+      const stopId = selectedStop?.id || mockStops[0].id;
+      setStatus(force ? "Обновляем данные..." : "Данные актуальны", "info");
+      const transport = await fetchNearbyTransport(stopId, coords);
+      updateRouteSuggestions(transport);
+      const routeQuery = routeInputEl.value.trim().toLowerCase();
+      let filtered = transport;
+      let terminiOptions = [];
+      if (routeQuery) {
+        filtered = filtered.filter((t) => normalizeRouteId(t.route).includes(routeQuery));
+        terminiOptions = collectTermini(filtered);
+      } else {
+        selectedTerminus = null;
+      }
+      renderTerminusOptions(terminiOptions);
+      if (selectedTerminus) {
+        filtered = filtered.filter(
+          (t) => (t.terminus || "").toLowerCase() === selectedTerminus.toLowerCase()
+        );
+      }
+      renderArrivals(filtered);
+      renderMapMarkers(stopId, filtered);
+      const best = filtered.sort((a, b) => a.eta - b.eta)[0];
+      if (best) {
+        heroRouteEl.textContent = best.route;
+        heroDirectionEl.textContent = best.terminus
+          ? `Едет к конечной «${best.terminus}»`
+          : "Конечная не указана";
+        heroEtaEl.textContent = `${best.eta} мин`;
+        setStatus(best.eta < 5 ? "Поторопитесь" : "Можно успеть", best.eta < 3 ? "danger" : best.eta < 7 ? "warning" : "info");
+      } else {
+        heroRouteEl.textContent = "Нет подходящего транспорта";
+        heroDirectionEl.textContent = "Выберите конечную или другой маршрут";
+        heroEtaEl.textContent = "--";
+        setStatus("Нет данных", "warning");
+      }
+      updatedAtEl.textContent = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderArrivals(list) {
+      if (!list.length) {
+        arrivalListEl.innerHTML = `<div class="empty">Нет данных по выбранной конечной или номеру маршрута</div>`;
+        return;
+      }
+      arrivalListEl.innerHTML = list
+        .sort((a, b) => a.eta - b.eta)
+        .map(
+          (item) => `
+            <div class="list-item">
+              <div>
+                <div class="route-name">${item.route}</div>
+                <div class="meta">
+                  <span>Конечная: ${item.terminus || "не указана"}</span>
+                  <span>ETA: ${item.eta} мин</span>
+                </div>
+              </div>
+              <div class="pill">${item.eta < 5 ? "Скоро" : "В пути"}</div>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    function initMap() {
+      map = L.map("map").setView([DEFAULT_COORDS.lat, DEFAULT_COORDS.lon], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
+      renderStopMarkers();
+    }
+
+    function renderStopMarkers() {
+      stopMarkers.forEach((m) => map.removeLayer(m));
+      stopMarkers = mockStops.map((stop) =>
+        L.marker([stop.coords.lat, stop.coords.lon], { title: stop.name })
+          .addTo(map)
+          .bindPopup(`<strong>${stop.name}</strong> <br> Tap, чтобы выбрать`)
+          .on("click", () => {
+            setSelectedStop(stop);
+            updateArrivalList(true);
+          })
+      );
+    }
+
+    function renderMapMarkers(stopId, transport) {
+      transportMarkers.forEach((m) => map.removeLayer(m));
+      transportMarkers = transport.map((item) =>
+        L.circleMarker([item.lat, item.lon], {
+          radius: 10,
+          color: item.direction === "to" ? "#22c55e" : "#3b82f6",
+          fillColor: item.direction === "to" ? "#22c55e" : "#3b82f6",
+          fillOpacity: 0.7
+        })
+          .addTo(map)
+          .bindPopup(`<strong>${item.route}</strong><br>Прибудет через ${item.eta} мин`)
+      );
+      const stop = allStops().find((s) => s.id === stopId);
+      if (stop) map.setView([stop.coords.lat, stop.coords.lon], 14);
+    }
+
+    function flyToStop(stop) {
+      if (!stop) return;
+      map.flyTo([stop.coords.lat, stop.coords.lon], 14, { duration: 0.6 });
+    }
+
+    function addUserMarker(lat, lon) {
+      L.circle([lat, lon], {
+        radius: 80,
+        color: "#22c55e",
+        fillColor: "#22c55e",
+        fillOpacity: 0.12
+      }).addTo(map).bindPopup("Вы здесь").openPopup();
+    }
+
+    function toggleFavorite() {
+      const stop = selectedStop || mockStops[0];
+      if (favoriteStops.has(stop.id)) {
+        favoriteStops.delete(stop.id);
+      } else {
+        favoriteStops.add(stop.id);
+      }
+      persistFavorites();
+      renderFavorites();
+    }
+
+    function persistFavorites() {
+      const favoritesPayload = [...favoriteStops]
+        .map((id) => allStops().find((s) => s.id === id))
+        .filter(Boolean);
+      localStorage.setItem("busline:favs", JSON.stringify(favoritesPayload));
+    }
+
+    function hydrateFavorites() {
+      try {
+        const raw = JSON.parse(localStorage.getItem("busline:favs") || "[]");
+        raw.forEach((item) => {
+          if (typeof item === "string") {
+            favoriteStops.add(item);
+            return;
+          }
+          if (item?.id && item?.name && item?.coords) {
+            dynamicStopOptions.push({
+              id: item.id,
+              name: item.name,
+              coords: item.coords
+            });
+            favoriteStops.add(item.id);
+          }
+        });
+        syncStopSuggest();
+      } catch (e) {
+        console.warn("favorite hydrate error", e);
+      }
+    }
+
+    function renderFavorites() {
+      if (!favoriteStops.size) {
+        favoritesEl.innerHTML = '<div class="empty">Добавьте остановку, чтобы быстро к ней возвращаться</div>';
+        return;
+      }
+      favoritesEl.innerHTML = [...favoriteStops]
+        .map((id) => allStops().find((s) => s.id === id))
+        .filter(Boolean)
+        .map(
+          (stop) => `
+            <div class="list-item">
+              <div>
+                <div class="route-name">${stop.name}</div>
+                <div class="meta">${stop.coords.lat.toFixed(3)}, ${stop.coords.lon.toFixed(3)}</div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="secondary" onclick="selectFavorite('${stop.id}')">Открыть</button>
+                <button class="secondary" onclick="removeFavorite('${stop.id}')">Убрать</button>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    function selectFavorite(id) {
+      const stop = allStops().find((s) => s.id === id);
+      if (stop) {
+        setSelectedStop(stop);
+        flyToStop(stop);
+        updateArrivalList(true);
+      }
+    }
+
+    function removeFavorite(id) {
+      favoriteStops.delete(id);
+      persistFavorites();
+      renderFavorites();
+    }
+
+    init();
+  </script>
+</body>
+</html>
