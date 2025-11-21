@@ -155,7 +155,8 @@
       color: #dbeafe;
     }
 
-    .toggle-group {
+    .toggle-group,
+    .terminus-group {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       background: rgba(255, 255, 255, 0.05);
@@ -164,7 +165,8 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .toggle-group button {
+    .toggle-group button,
+    .terminus-group button {
       width: 100%;
       border-radius: 12px;
       border: none;
@@ -173,7 +175,8 @@
       color: var(--muted);
     }
 
-    .toggle-group button.active {
+    .toggle-group button.active,
+    .terminus-group button.active {
       background: linear-gradient(120deg, #3b82f6, #22c55e);
       color: #03131e;
       font-weight: 800;
@@ -223,7 +226,7 @@
     <section class="card hero-card">
       <div>
         <h1>Прямо сейчас рядом 🔥</h1>
-        <p class="lead">Маршрут в скобках показывает направление, сразу видно — в вашу сторону или нет.</p>
+        <p class="lead">После выбора маршрута покажем две конечные — выберите нужную, чтобы понять, куда едет.</p>
         <div class="pill" id="hero-status">Ожидание данных</div>
       </div>
 
@@ -260,10 +263,9 @@
         <datalist id="route-suggest"></datalist>
       </div>
       <div>
-        <label>Направление</label>
-        <div class="toggle-group" id="direction-toggle">
-          <button data-dir="to" class="active">В мою сторону</button>
-          <button data-dir="from">Из моей стороны</button>
+        <label>Куда едет (конечная)</label>
+        <div class="terminus-group" id="terminus-options">
+          <div class="small" style="grid-column: 1 / -1; padding: 6px 8px;">Выберите маршрут, чтобы появились конечные</div>
         </div>
       </div>
       <div style="display:flex; gap:8px;">
@@ -308,7 +310,7 @@
     const routeSelectEl = document.getElementById("route-select");
     const routeInputEl = document.getElementById("route-input");
     const routeSuggestEl = document.getElementById("route-suggest");
-    const directionToggleEl = document.getElementById("direction-toggle");
+    const terminusOptionsEl = document.getElementById("terminus-options");
     const heroRouteEl = document.getElementById("hero-route");
     const heroDirectionEl = document.getElementById("hero-direction");
     const heroEtaEl = document.getElementById("hero-eta");
@@ -323,14 +325,86 @@
     ];
 
     const mockTransport = [
-      { route: "18 (в центр)", eta: 4, direction: "to", stopId: "stop_1", lat: 54.7355, lon: 55.9585 },
-      { route: "18 (из центра)", eta: 11, direction: "from", stopId: "stop_1", lat: 54.7341, lon: 55.9571 },
-      { route: "69 (в центр)", eta: 5, direction: "to", stopId: "stop_2", lat: 54.7396, lon: 55.9734 },
-      { route: "69 (из центра)", eta: 9, direction: "from", stopId: "stop_2", lat: 54.7392, lon: 55.9718 },
-      { route: "110с (в центр)", eta: 7, direction: "to", stopId: "stop_3", lat: 54.7412, lon: 55.9856 },
-      { route: "110с (из центра)", eta: 12, direction: "from", stopId: "stop_3", lat: 54.7407, lon: 55.9844 },
-      { route: "273 (в центр)", eta: 6, direction: "to", stopId: "stop_2", lat: 54.7399, lon: 55.9731 },
-      { route: "273 (из центра)", eta: 13, direction: "from", stopId: "stop_2", lat: 54.7391, lon: 55.9721 }
+      {
+        route: "18 (в центр)",
+        eta: 4,
+        direction: "to",
+        stopId: "stop_1",
+        lat: 54.7355,
+        lon: 55.9585,
+        terminus: "Уфимский кремль",
+        termini: ["Дема", "Уфимский кремль"]
+      },
+      {
+        route: "18 (из центра)",
+        eta: 11,
+        direction: "from",
+        stopId: "stop_1",
+        lat: 54.7341,
+        lon: 55.9571,
+        terminus: "Дема",
+        termini: ["Дема", "Уфимский кремль"]
+      },
+      {
+        route: "69 (в центр)",
+        eta: 5,
+        direction: "to",
+        stopId: "stop_2",
+        lat: 54.7396,
+        lon: 55.9734,
+        terminus: "Уфа-Арена",
+        termini: ["Сипайлово", "Уфа-Арена"]
+      },
+      {
+        route: "69 (из центра)",
+        eta: 9,
+        direction: "from",
+        stopId: "stop_2",
+        lat: 54.7392,
+        lon: 55.9718,
+        terminus: "Сипайлово",
+        termini: ["Сипайлово", "Уфа-Арена"]
+      },
+      {
+        route: "110с (в центр)",
+        eta: 7,
+        direction: "to",
+        stopId: "stop_3",
+        lat: 54.7412,
+        lon: 55.9856,
+        terminus: "ВДНХ-Экспо",
+        termini: ["Черниковка", "ВДНХ-Экспо"]
+      },
+      {
+        route: "110с (из центра)",
+        eta: 12,
+        direction: "from",
+        stopId: "stop_3",
+        lat: 54.7407,
+        lon: 55.9844,
+        terminus: "Черниковка",
+        termini: ["Черниковка", "ВДНХ-Экспо"]
+      },
+      {
+        route: "273 (в центр)",
+        eta: 6,
+        direction: "to",
+        stopId: "stop_2",
+        lat: 54.7399,
+        lon: 55.9731,
+        terminus: "Центр",
+        termini: ["Затон", "Центр"]
+      },
+      {
+        route: "273 (из центра)",
+        eta: 13,
+        direction: "from",
+        stopId: "stop_2",
+        lat: 54.7391,
+        lon: 55.9721,
+        terminus: "Затон",
+        termini: ["Затон", "Центр"]
+      }
     ];
 
     const ufaRouteNumbers = ["1", "10", "18", "21", "27", "69", "74", "110с", "163", "273"];
@@ -338,6 +412,7 @@
     let map;
     let stopMarkers = [];
     let transportMarkers = [];
+    let selectedTerminus = null;
 
     const favoriteStops = new Set(JSON.parse(localStorage.getItem("busline:favs") || "[]"));
 
@@ -365,9 +440,10 @@
       routeSelectEl.addEventListener("change", handleStopChange);
       stopInputEl.addEventListener("input", handleStopInput);
       routeInputEl.addEventListener("input", () => updateArrivalList());
-      directionToggleEl.addEventListener("click", (e) => {
+      terminusOptionsEl.addEventListener("click", (e) => {
         if (e.target.tagName === "BUTTON") {
-          [...directionToggleEl.children].forEach((btn) => btn.classList.remove("active"));
+          selectedTerminus = e.target.dataset.terminus;
+          [...terminusOptionsEl.querySelectorAll("button")].forEach((btn) => btn.classList.remove("active"));
           e.target.classList.add("active");
           updateArrivalList();
         }
@@ -433,6 +509,41 @@
       routeSuggestEl.innerHTML = routes.map((r) => `<option value="${r}"></option>`).join("");
     }
 
+    function extractTerminiFromTitle(title = "") {
+      const parts = title.split(/[-—–]/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length >= 2) return [parts[0], parts[parts.length - 1]];
+      return [];
+    }
+
+    function collectTermini(list = []) {
+      const termini = list
+        .flatMap((item) => item.termini || extractTerminiFromTitle(item.route))
+        .filter(Boolean);
+      return Array.from(new Set(termini));
+    }
+
+    function renderTerminusOptions(options = []) {
+      if (!options.length) {
+        terminusOptionsEl.innerHTML =
+          '<div class="small" style="grid-column: 1 / -1; padding: 6px 8px;">Введите номер маршрута, чтобы выбрать конечную</div>';
+        selectedTerminus = null;
+        return;
+      }
+      const unique = Array.from(new Set(options));
+      if (!selectedTerminus || !unique.includes(selectedTerminus)) {
+        selectedTerminus = unique[0];
+      }
+      terminusOptionsEl.innerHTML = unique
+        .map(
+          (opt) => `
+            <button data-terminus="${opt}" class="${selectedTerminus === opt ? "active" : ""}">
+              ${opt}
+            </button>
+          `
+        )
+        .join("");
+    }
+
     async function fetchNearbyTransport(stopId, coords) {
       const stop = mockStops.find((s) => s.id === stopId);
       const point = coords || stop?.coords || DEFAULT_COORDS;
@@ -481,10 +592,14 @@
             );
             const directionName = (item.thread?.direction || "").toLowerCase();
             const goesToCenter = directionName.includes("центр") || directionName.includes("center");
+            const termini = extractTerminiFromTitle(item.thread?.title || item.thread?.short_title || "");
+            const terminus = termini[1] || item.thread?.direction || "Конечная не указана";
             return {
-              route: `${item.thread?.number || item.thread?.title || "Маршрут"} (${directionName || "направление"})`,
+              route: `${item.thread?.number || item.thread?.title || "Маршрут"} (${termini.join(" — ") || directionName || "конечная"})`,
               eta: etaMinutes,
               direction: goesToCenter ? "to" : "from",
+              terminus,
+              termini,
               stopId: stopId,
               lat: station.latitude,
               lon: station.longitude
@@ -509,26 +624,37 @@
 
     async function updateArrivalList(force = false, coords = DEFAULT_COORDS) {
       const stopId = routeSelectEl.value;
-      const selectedDirection = directionToggleEl.querySelector(".active").dataset.dir;
       setStatus(force ? "Обновляем данные..." : "Данные актуальны", "info");
       const transport = await fetchNearbyTransport(stopId, coords);
       updateRouteSuggestions(transport);
       const routeQuery = routeInputEl.value.trim().toLowerCase();
-      let filtered = transport.filter((t) => t.direction === selectedDirection);
+      let filtered = transport;
+      let terminiOptions = [];
       if (routeQuery) {
         filtered = filtered.filter((t) => normalizeRouteId(t.route).includes(routeQuery));
+        terminiOptions = collectTermini(filtered);
+      } else {
+        selectedTerminus = null;
+      }
+      renderTerminusOptions(terminiOptions);
+      if (selectedTerminus) {
+        filtered = filtered.filter(
+          (t) => (t.terminus || "").toLowerCase() === selectedTerminus.toLowerCase()
+        );
       }
       renderArrivals(filtered);
       renderMapMarkers(stopId, filtered);
       const best = filtered.sort((a, b) => a.eta - b.eta)[0];
       if (best) {
         heroRouteEl.textContent = best.route;
-        heroDirectionEl.textContent = best.direction === "to" ? "Движется к вам" : "Уходит от вас";
+        heroDirectionEl.textContent = best.terminus
+          ? `Едет к конечной «${best.terminus}»`
+          : "Конечная не указана";
         heroEtaEl.textContent = `${best.eta} мин`;
         setStatus(best.eta < 5 ? "Поторопитесь" : "Можно успеть", best.eta < 3 ? "danger" : best.eta < 7 ? "warning" : "info");
       } else {
         heroRouteEl.textContent = "Нет подходящего транспорта";
-        heroDirectionEl.textContent = "Попробуйте выбрать другое направление";
+        heroDirectionEl.textContent = "Выберите конечную или другой маршрут";
         heroEtaEl.textContent = "--";
         setStatus("Нет данных", "warning");
       }
@@ -537,7 +663,7 @@
 
     function renderArrivals(list) {
       if (!list.length) {
-        arrivalListEl.innerHTML = `<div class="empty">Нет данных по выбранному направлению или номеру маршрута</div>`;
+        arrivalListEl.innerHTML = `<div class="empty">Нет данных по выбранной конечной или номеру маршрута</div>`;
         return;
       }
       arrivalListEl.innerHTML = list
@@ -548,7 +674,7 @@
               <div>
                 <div class="route-name">${item.route}</div>
                 <div class="meta">
-                  <span>${item.direction === "to" ? "В вашу сторону" : "Из вашей стороны"}</span>
+                  <span>Конечная: ${item.terminus || "не указана"}</span>
                   <span>ETA: ${item.eta} мин</span>
                 </div>
               </div>
