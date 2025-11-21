@@ -1,1 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transport Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --subtext-color: #888888;
+            --accent-color: #ffbb00; /* Yellow/Orange for bus icon */
+            --success-color: #4cd964; /* Green for status */
+            --bg-color: #f0f0f0;
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--primary-gradient);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-top: 40px; /* Status bar space */
+        }
+
+        .location-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            flex-grow: 1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .location-badge i {
+            color: #fff;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+
+        /* Main Content - The Card */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center vertically */
+            padding: 20px;
+            padding-bottom: 140px; /* Space for bottom sheet */
+        }
+
+        .transport-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 24px;
+            color: var(--text-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #222;
+        }
+
+        .card-body {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .transport-icon-box {
+            width: 56px;
+            height: 56px;
+            background: #fffcf2; /* Light orange bg */
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--accent-color);
+            flex-shrink: 0;
+            border: 1px solid #fff4d6;
+        }
+
+        .transport-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 56px;
+        }
+
+        .transport-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            color: #000;
+        }
+
+        .transport-subtitle {
+            font-size: 14px;
+            color: var(--subtext-color);
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .status-pill {
+            background: #eefbf1;
+            color: #2e7d32;
+            padding: 12px 16px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #2e7d32;
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.15);
+            animation: pulse 2s infinite;
+        }
+
+        /* Bottom Sheet */
+        .bottom-sheet {
+            background: white;
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            padding: 24px;
+            padding-bottom: 40px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f7;
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .search-bar {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 16px 16px 52px;
+            background: #f5f5f7;
+            border: none;
+            border-radius: 18px;
+            font-size: 16px;
+            color: #333;
+            outline: none;
+            font-weight: 500;
+        }
+
+        .search-input::placeholder {
+            color: #aaa;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 18px;
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(46, 125, 50, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+        }
+
+        /* Utility for hiding elements */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="location-badge">
+            <i class="fas fa-map-marker-alt"></i>
+            <span id="addressText">Загрузка...</span>
+        </div>
+        <div class="profile-icon">
+            <i class="far fa-user"></i>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="transport-card" id="transportCard">
+            <div class="card-header">
+                <span id="cardHeader">Поиск транспорта...</span>
+            </div>
+            <div class="card-body">
+                <div class="transport-icon-box">
+                    <i class="fas fa-bus"></i>
+                </div>
+                <div class="transport-info">
+                    <div class="transport-title" id="transportTitle">--</div>
+                    <div class="transport-subtitle" id="transportSubtitle">--</div>
+                </div>
+            </div>
+            <div class="status-pill">
+                <div class="status-dot"></div>
+                <span id="etaText">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-sheet">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('auto')" id="tab-auto">Остановка</div>
+            <div class="tab" onclick="switchTab('route')" id="tab-route">Маршрут</div>
+        </div>
+        <div class="search-bar">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="Поиск остановки...">
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Mock Data mimicking the backend response structure
+         */
+        const mockData = {
+            "hasTransport": true,
+            "uiMode": "auto",
+            "addressText": "Вы здесь: Ул. Ленина, 45",
+            "card": {
+                "header": "Прямо сейчас рядом 🔥",
+                "transportTitle": "Маршрутка №45к",
+                "transportSubtitle": "в центр (м. Театральная)",
+                "etaMinutes": 2,
+                "etaText": "Прибудет через 2 мин"
+            },
+            "stopName": "Ул. Ленина",
+            "routeNumber": "45к",
+            "selectedDirection": "в центр",
+            "directions": [],
+            "statusText": "Маршрутка №45к прибудет через 2 мин",
+            "debugInfo": "mock-data"
+        };
+
+        /**
+         * Renders the UI based on the provided data object.
+         * @param {Object} data - The JSON data matching the backend spec.
+         */
+        function render(data) {
+            console.log("Rendering data:", data);
+
+            // 1. Update Header Location
+            if (data.addressText) {
+                document.getElementById('addressText').textContent = data.addressText;
+            }
+
+            // 2. Update Card Content
+            const cardElement = document.getElementById('transportCard');
+
+            if (data.hasTransport && data.card) {
+                cardElement.classList.remove('hidden');
+
+                if (data.card.header) {
+                    document.getElementById('cardHeader').textContent = data.card.header;
+                }
+
+                if (data.card.transportTitle) {
+                    document.getElementById('transportTitle').textContent = data.card.transportTitle;
+                }
+
+                if (data.card.transportSubtitle) {
+                    document.getElementById('transportSubtitle').textContent = data.card.transportSubtitle;
+                }
+
+                if (data.card.etaText) {
+                    document.getElementById('etaText').textContent = data.card.etaText;
+                }
+
+            } else {
+                // If hasTransport is false, we might want to show a "No transport" state
+                // or hide the card. For this UI, we might just update the header to say "nothing found"
+                // or hide the card content.
+                document.getElementById('cardHeader').textContent = data.statusText || "Транспорт не найден";
+                document.getElementById('transportTitle').textContent = "";
+                document.getElementById('transportSubtitle').textContent = "";
+                document.getElementById('etaText').textContent = "--";
+            }
+
+            // 3. Handle UI Mode (Tabs)
+            updateTabs(data.uiMode);
+        }
+
+        function updateTabs(mode) {
+            const tabAuto = document.getElementById('tab-auto');
+            const tabRoute = document.getElementById('tab-route');
+            const searchInput = document.getElementById('searchInput');
+
+            // Reset classes
+            tabAuto.classList.remove('active');
+            tabRoute.classList.remove('active');
+
+            if (mode === 'route') {
+                tabRoute.classList.add('active');
+                searchInput.placeholder = "Поиск маршрута...";
+            } else {
+                // Covers 'auto' and 'stop' modes
+                tabAuto.classList.add('active');
+                searchInput.placeholder = "Поиск остановки...";
+            }
+        }
+
+        // Tab Switch Handler (simulates user switching modes)
+        function switchTab(mode) {
+            // In a real app, this would trigger a request to the backend
+            // Here we just update the UI visually
+            updateTabs(mode);
+            console.log(`Switched to ${mode} mode`);
+        }
+
+        // Initialize with mock data
+        document.addEventListener('DOMContentLoaded', () => {
+            // Simulate network delay
+            setTimeout(() => {
+                render(mockData);
+            }, 600);
+        });
+
+    </script>
+</body>
+</html>
