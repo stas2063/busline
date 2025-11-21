@@ -307,6 +307,7 @@
     const API_KEY = "595fce36-b6f8-4afe-9ffe-209df2d8f9c4";
     const CITY_NAME = "Уфа";
     const DEFAULT_COORDS = { lat: 54.73876, lon: 55.97206 }; // Уфа, центр
+    const UFA_RADIUS_KM = 35;
     const arrivalListEl = document.getElementById("arrival-list");
     const updatedAtEl = document.getElementById("updated-at");
     const routeSelectEl = document.getElementById("route-select");
@@ -417,6 +418,23 @@
     let selectedTerminus = null;
 
     const favoriteStops = new Set(JSON.parse(localStorage.getItem("busline:favs") || "[]"));
+
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+
+    function distanceKm(a, b) {
+      const R = 6371;
+      const dLat = deg2rad(b.lat - a.lat);
+      const dLon = deg2rad(b.lon - a.lon);
+      const lat1 = deg2rad(a.lat);
+      const lat2 = deg2rad(b.lat);
+      const sinLat = Math.sin(dLat / 2) ** 2;
+      const sinLon = Math.sin(dLon / 2) ** 2;
+      const a = sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
 
     function init() {
       populateRoutes();
@@ -564,7 +582,12 @@
         if (!nearestRes.ok) throw new Error(`Nearest request failed: ${nearestRes.status}`);
         const nearest = await nearestRes.json();
         const cityNameLower = CITY_NAME.toLowerCase();
-        const stations = (nearest.stations || []).filter((s) => Boolean(s));
+        const stations = (nearest.stations || [])
+          .filter((s) => Boolean(s))
+          .filter((s) => {
+            const coords = { lat: s.latitude, lon: s.longitude };
+            return distanceKm(DEFAULT_COORDS, coords) <= UFA_RADIUS_KM;
+          });
         const cityStation = stations.find((s) => {
           const title = (s.title || "").toLowerCase();
           const settlement = (s.settlement || "").toLowerCase();
@@ -584,6 +607,10 @@
         const scheduleRes = await fetch(scheduleUrl);
         if (!scheduleRes.ok) throw new Error(`Schedule request failed: ${scheduleRes.status}`);
         const schedule = await scheduleRes.json();
+
+        if ((station.settlement || "").toLowerCase() !== cityNameLower) {
+          throw new Error("Станция не относится к Уфе");
+        }
 
         const now = Date.now();
         const arrivals = (schedule.schedule || [])
