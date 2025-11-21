@@ -249,6 +249,11 @@
         <select id="route-select"></select>
       </div>
       <div>
+        <label for="route-input">Номер маршрута</label>
+        <input id="route-input" type="text" list="route-suggest" placeholder="Например, 18" autocomplete="off" />
+        <datalist id="route-suggest"></datalist>
+      </div>
+      <div>
         <label>Направление</label>
         <div class="toggle-group" id="direction-toggle">
           <button data-dir="to" class="active">В мою сторону</button>
@@ -294,6 +299,8 @@
     const arrivalListEl = document.getElementById("arrival-list");
     const updatedAtEl = document.getElementById("updated-at");
     const routeSelectEl = document.getElementById("route-select");
+    const routeInputEl = document.getElementById("route-input");
+    const routeSuggestEl = document.getElementById("route-suggest");
     const directionToggleEl = document.getElementById("direction-toggle");
     const heroRouteEl = document.getElementById("hero-route");
     const heroDirectionEl = document.getElementById("hero-direction");
@@ -325,6 +332,7 @@
 
     function init() {
       populateRoutes();
+      updateRouteSuggestions(mockTransport);
       initMap();
       attachEvents();
       getUserLocation();
@@ -345,6 +353,7 @@
       document.getElementById("favorite").addEventListener("click", toggleFavorite);
       routeSelectEl.addEventListener("change", handleStopChange);
       stopInputEl.addEventListener("input", handleStopInput);
+      routeInputEl.addEventListener("input", () => updateArrivalList());
       directionToggleEl.addEventListener("click", (e) => {
         if (e.target.tagName === "BUTTON") {
           [...directionToggleEl.children].forEach((btn) => btn.classList.remove("active"));
@@ -398,6 +407,18 @@
         ? "rgba(245, 158, 11, 0.18)"
         : "rgba(59, 130, 246, 0.16)";
       heroStatusEl.style.color = tone === "danger" ? "#fecdd3" : tone === "warning" ? "#fef9c3" : "#bfdbfe";
+    }
+
+    function normalizeRouteId(routeText = "") {
+      const match = routeText.match(/^([\wА-Яа-я\d]+)/);
+      return (match ? match[1] : routeText).toLowerCase();
+    }
+
+    function updateRouteSuggestions(arrivals = []) {
+      const routes = Array.from(
+        new Set(arrivals.map((item) => normalizeRouteId(item.route)).filter(Boolean))
+      );
+      routeSuggestEl.innerHTML = routes.map((r) => `<option value="${r}"></option>`).join("");
     }
 
     async function fetchNearbyTransport(stopId, coords) {
@@ -470,7 +491,12 @@
       const selectedDirection = directionToggleEl.querySelector(".active").dataset.dir;
       setStatus(force ? "Обновляем данные..." : "Данные актуальны", "info");
       const transport = await fetchNearbyTransport(stopId, coords);
-      const filtered = transport.filter((t) => t.direction === selectedDirection);
+      updateRouteSuggestions(transport);
+      const routeQuery = routeInputEl.value.trim().toLowerCase();
+      let filtered = transport.filter((t) => t.direction === selectedDirection);
+      if (routeQuery) {
+        filtered = filtered.filter((t) => normalizeRouteId(t.route).includes(routeQuery));
+      }
       renderArrivals(filtered);
       renderMapMarkers(stopId, filtered);
       const best = filtered.sort((a, b) => a.eta - b.eta)[0];
@@ -490,7 +516,7 @@
 
     function renderArrivals(list) {
       if (!list.length) {
-        arrivalListEl.innerHTML = `<div class="empty">Нет данных по выбранному направлению</div>`;
+        arrivalListEl.innerHTML = `<div class="empty">Нет данных по выбранному направлению или номеру маршрута</div>`;
         return;
       }
       arrivalListEl.innerHTML = list
