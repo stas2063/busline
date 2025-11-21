@@ -559,6 +559,7 @@
     async function fetchNearbyTransport(stopId = selectedStopId, coords) {
       const stop = mockStops.find((s) => s.id === stopId);
       const point = coords || stop?.coords || DEFAULT_COORDS;
+      const authHeaders = { Authorization: `Apikey ${API_KEY}` };
 
       try {
         const nearestUrl = new URL("https://api.rasp.yandex.net/v3.0/nearest_stations/");
@@ -570,7 +571,7 @@
         nearestUrl.searchParams.set("transport_types", "bus,tram,trol");
         nearestUrl.searchParams.set("lang", "ru_RU");
 
-        const nearestRes = await fetch(nearestUrl);
+        const nearestRes = await fetch(nearestUrl, { headers: authHeaders });
         if (!nearestRes.ok) throw new Error(`Nearest request failed: ${nearestRes.status}`);
         const nearest = await nearestRes.json();
         const cityNameLower = CITY_NAME.toLowerCase();
@@ -596,7 +597,7 @@
         scheduleUrl.searchParams.set("transport_types", "bus,tram,trol");
         scheduleUrl.searchParams.set("event", "departure");
 
-        const scheduleRes = await fetch(scheduleUrl);
+        const scheduleRes = await fetch(scheduleUrl, { headers: authHeaders });
         if (!scheduleRes.ok) throw new Error(`Schedule request failed: ${scheduleRes.status}`);
         const schedule = await scheduleRes.json();
 
