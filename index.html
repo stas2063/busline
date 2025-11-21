@@ -218,7 +218,7 @@
 </head>
 <body>
   <div class="phone">
-    <div class="top-chip">📍 Вы здесь: Ул. Ленина, 45</div>
+    <div class="top-chip">📍 Город: Уфа — данные только по Уфе</div>
 
     <section class="card hero-card">
       <div>
@@ -295,7 +295,8 @@
   ></script>
   <script>
     const API_KEY = "595fce36-b6f8-4afe-9ffe-209df2d8f9c4";
-    const DEFAULT_COORDS = { lat: 55.751244, lon: 37.618423 }; // Москва
+    const CITY_NAME = "Уфа";
+    const DEFAULT_COORDS = { lat: 54.73876, lon: 55.97206 }; // Уфа, центр
     const arrivalListEl = document.getElementById("arrival-list");
     const updatedAtEl = document.getElementById("updated-at");
     const routeSelectEl = document.getElementById("route-select");
@@ -310,18 +311,18 @@
     const stopInputEl = document.getElementById("stop-input");
 
     const mockStops = [
-      { id: "stop_1", name: "Проспект Мира", coords: { lat: 55.779, lon: 37.632 } },
-      { id: "stop_2", name: "Чистые пруды", coords: { lat: 55.765, lon: 37.638 } },
-      { id: "stop_3", name: "Тверская", coords: { lat: 55.765, lon: 37.605 } }
+      { id: "stop_1", name: "Площадь Ленина (Уфа)", coords: { lat: 54.7349, lon: 55.9578 } },
+      { id: "stop_2", name: "Центральный рынок (Уфа)", coords: { lat: 54.7396, lon: 55.9729 } },
+      { id: "stop_3", name: "Гостиный двор (Уфа)", coords: { lat: 54.7409, lon: 55.985 } }
     ];
 
     const mockTransport = [
-      { route: "24 (в центр)", eta: 4, direction: "to", stopId: "stop_1", lat: 55.7795, lon: 37.634 },
-      { route: "42 (из центра)", eta: 9, direction: "from", stopId: "stop_1", lat: 55.778, lon: 37.630 },
-      { route: "A2 (в центр)", eta: 3, direction: "to", stopId: "stop_2", lat: 55.764, lon: 37.639 },
-      { route: "A2 (из центра)", eta: 11, direction: "from", stopId: "stop_2", lat: 55.766, lon: 37.637 },
-      { route: "15 (в центр)", eta: 7, direction: "to", stopId: "stop_3", lat: 55.764, lon: 37.604 },
-      { route: "15 (из центра)", eta: 12, direction: "from", stopId: "stop_3", lat: 55.766, lon: 37.606 }
+      { route: "18 (в центр)", eta: 4, direction: "to", stopId: "stop_1", lat: 54.7355, lon: 55.9585 },
+      { route: "18 (из центра)", eta: 11, direction: "from", stopId: "stop_1", lat: 54.7341, lon: 55.9571 },
+      { route: "69 (в центр)", eta: 5, direction: "to", stopId: "stop_2", lat: 54.7396, lon: 55.9734 },
+      { route: "69 (из центра)", eta: 9, direction: "from", stopId: "stop_2", lat: 54.7392, lon: 55.9718 },
+      { route: "110с (в центр)", eta: 7, direction: "to", stopId: "stop_3", lat: 54.7412, lon: 55.9856 },
+      { route: "110с (из центра)", eta: 12, direction: "from", stopId: "stop_3", lat: 54.7407, lon: 55.9844 }
     ];
 
     let map;
@@ -392,7 +393,7 @@
         },
         (err) => {
           console.warn(err);
-          setStatus("Не удалось получить геолокацию, используем центр города", "warning");
+          setStatus("Не удалось получить геолокацию, используем центр Уфы", "warning");
           map.setView([DEFAULT_COORDS.lat, DEFAULT_COORDS.lon], 13);
         },
         { enableHighAccuracy: true, timeout: 5000 }
@@ -433,12 +434,21 @@
         nearestUrl.searchParams.set("lon", point.lon);
         nearestUrl.searchParams.set("distance", 1500);
         nearestUrl.searchParams.set("transport_types", "bus,tram,trol");
+        nearestUrl.searchParams.set("lang", "ru_RU");
 
         const nearestRes = await fetch(nearestUrl);
         if (!nearestRes.ok) throw new Error(`Nearest request failed: ${nearestRes.status}`);
         const nearest = await nearestRes.json();
-        const station = nearest.stations?.[0];
+        const cityNameLower = CITY_NAME.toLowerCase();
+        const stations = (nearest.stations || []).filter((s) => Boolean(s));
+        const cityStation = stations.find((s) => {
+          const title = (s.title || "").toLowerCase();
+          const settlement = (s.settlement || "").toLowerCase();
+          return title.includes(cityNameLower) || settlement.includes(cityNameLower);
+        });
+        const station = cityStation || stations[0];
         if (!station?.code) throw new Error("Нет ближайших станций от API");
+        if (!cityStation) throw new Error("API вернул станции вне Уфы");
 
         const scheduleUrl = new URL("https://api.rasp.yandex.net/v3.0/schedule/");
         scheduleUrl.searchParams.set("apikey", API_KEY);
@@ -473,13 +483,13 @@
           .slice(0, 10);
 
         if (arrivals.length) {
-          setStatus(`Данные по API Яндекс: ${station.title}`, "info");
+          setStatus(`Данные по API Яндекс: ${station.title} (${CITY_NAME})`, "info");
           return arrivals;
         }
         throw new Error("Пустое расписание");
       } catch (error) {
         console.warn("API fallback:", error);
-        setStatus("Используем локальные данные (ошибка API)", "warning");
+        setStatus("Используем локальные данные по Уфе (ошибка API)", "warning");
         return new Promise((resolve) => {
           setTimeout(() => resolve(mockTransport.filter((t) => t.stopId === stopId)), 300);
         });
