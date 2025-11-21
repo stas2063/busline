@@ -245,11 +245,8 @@
     <section class="card controls">
       <div>
         <label for="stop-input">Остановка</label>
-        <input id="stop-input" type="text" placeholder="Поиск остановки..." />
-      </div>
-      <div>
-        <label for="route-select">Маршрут</label>
-        <select id="route-select"></select>
+        <input id="stop-input" list="stop-suggest" type="text" placeholder="Поиск остановки..." />
+        <datalist id="stop-suggest"></datalist>
       </div>
       <div>
         <label for="route-input">Номер маршрута</label>
@@ -308,9 +305,9 @@
     const CITY_NAME = "Уфа";
     const DEFAULT_COORDS = { lat: 54.73876, lon: 55.97206 }; // Уфа, центр
     const UFA_RADIUS_KM = 35;
+    let selectedStopId = "stop_1";
     const arrivalListEl = document.getElementById("arrival-list");
     const updatedAtEl = document.getElementById("updated-at");
-    const routeSelectEl = document.getElementById("route-select");
     const routeInputEl = document.getElementById("route-input");
     const routeSuggestEl = document.getElementById("route-suggest");
     const terminusOptionsEl = document.getElementById("terminus-options");
@@ -320,6 +317,7 @@
     const heroStatusEl = document.getElementById("hero-status");
     const favoritesEl = document.getElementById("favorites");
     const stopInputEl = document.getElementById("stop-input");
+    const stopSuggestEl = document.getElementById("stop-suggest");
 
     const mockStops = [
       { id: "stop_1", name: "Площадь Ленина (Уфа)", coords: { lat: 54.7349, lon: 55.9578 } },
@@ -437,7 +435,7 @@
     }
 
     function init() {
-      populateRoutes();
+      populateStops();
       updateRouteSuggestions(mockTransport);
       initMap();
       attachEvents();
@@ -446,18 +444,17 @@
       updateArrivalList();
     }
 
-    function populateRoutes() {
-      routeSelectEl.innerHTML = mockStops
-        .map((stop) => `<option value="${stop.id}">${stop.name}</option>`)
+    function populateStops() {
+      stopSuggestEl.innerHTML = mockStops
+        .map((stop) => `<option value="${stop.name}" data-id="${stop.id}"></option>`)
         .join("");
-      routeSelectEl.value = mockStops[0].id;
+      selectedStopId = mockStops[0].id;
       stopInputEl.value = mockStops[0].name;
     }
 
     function attachEvents() {
       document.getElementById("refresh").addEventListener("click", () => updateArrivalList(true));
       document.getElementById("favorite").addEventListener("click", toggleFavorite);
-      routeSelectEl.addEventListener("change", handleStopChange);
       stopInputEl.addEventListener("input", handleStopInput);
       routeInputEl.addEventListener("input", () => updateArrivalList());
       terminusOptionsEl.addEventListener("click", (e) => {
@@ -470,17 +467,12 @@
       });
     }
 
-    function handleStopChange() {
-      const selected = mockStops.find((s) => s.id === routeSelectEl.value);
-      stopInputEl.value = selected ? selected.name : "";
-      flyToStop(selected);
-      updateArrivalList();
-    }
-
     function handleStopInput() {
       const match = mockStops.find((s) => s.name.toLowerCase().includes(stopInputEl.value.toLowerCase()));
       if (match) {
-        routeSelectEl.value = match.id;
+        selectedStopId = match.id;
+        flyToStop(match);
+        updateArrivalList();
       }
     }
 
@@ -564,7 +556,7 @@
         .join("");
     }
 
-    async function fetchNearbyTransport(stopId, coords) {
+    async function fetchNearbyTransport(stopId = selectedStopId, coords) {
       const stop = mockStops.find((s) => s.id === stopId);
       const point = coords || stop?.coords || DEFAULT_COORDS;
 
@@ -646,13 +638,19 @@
         console.warn("API fallback:", error);
         setStatus("Используем локальные данные по Уфе (ошибка API)", "warning");
         return new Promise((resolve) => {
-          setTimeout(() => resolve(mockTransport.filter((t) => t.stopId === stopId)), 300);
+          setTimeout(
+            () =>
+              resolve(
+                mockTransport.filter((t) => t.stopId === (stopId || selectedStopId || mockStops[0].id))
+              ),
+            300
+          );
         });
       }
     }
 
     async function updateArrivalList(force = false, coords = DEFAULT_COORDS) {
-      const stopId = routeSelectEl.value;
+      const stopId = selectedStopId || mockStops[0].id;
       setStatus(force ? "Обновляем данные..." : "Данные актуальны", "info");
       const transport = await fetchNearbyTransport(stopId, coords);
       updateRouteSuggestions(transport);
@@ -730,7 +728,7 @@
           .addTo(map)
           .bindPopup(`<strong>${stop.name}</strong> <br> Tap, чтобы выбрать`)
           .on("click", () => {
-            routeSelectEl.value = stop.id;
+            selectedStopId = stop.id;
             stopInputEl.value = stop.name;
             updateArrivalList(true);
           })
@@ -768,7 +766,7 @@
     }
 
     function toggleFavorite() {
-      const stopId = routeSelectEl.value;
+      const stopId = selectedStopId || mockStops[0].id;
       if (favoriteStops.has(stopId)) {
         favoriteStops.delete(stopId);
       } else {
@@ -804,11 +802,13 @@
     }
 
     function selectFavorite(id) {
-      routeSelectEl.value = id;
       const stop = mockStops.find((s) => s.id === id);
-      stopInputEl.value = stop ? stop.name : "";
-      flyToStop(stop);
-      updateArrivalList(true);
+      if (stop) {
+        selectedStopId = stop.id;
+        stopInputEl.value = stop.name;
+        flyToStop(stop);
+        updateArrivalList(true);
+      }
     }
 
     function removeFavorite(id) {
