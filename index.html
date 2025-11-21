@@ -203,6 +203,35 @@
 
     .empty { text-align: center; color: var(--muted-2); padding: 14px; border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 14px; }
 
+    .input-group { position: relative; }
+
+    .hints {
+      position: absolute;
+      z-index: 10;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .hints.visible { display: block; }
+
+    .hint-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .hint-item:last-child { border-bottom: none; }
+
+    .hint-item:hover { background: rgba(255, 255, 255, 0.06); }
+
     details.map-wrap {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -243,12 +272,13 @@
     </section>
 
     <section class="card controls">
-      <div>
+      <div class="input-group">
         <label for="stop-input">Остановка</label>
-        <input id="stop-input" list="stop-suggest" type="text" placeholder="Поиск остановки..." />
+        <input id="stop-input" list="stop-suggest" type="text" placeholder="Поиск остановки..." autocomplete="off" />
         <datalist id="stop-suggest"></datalist>
+        <div class="hints" id="stop-hints"></div>
       </div>
-      <div>
+      <div class="input-group">
         <label for="route-input">Номер маршрута</label>
         <input
           id="route-input"
@@ -260,6 +290,7 @@
           pattern="[0-9]{1,4}[А-Яа-яA-Za-z]?"
         />
         <datalist id="route-suggest"></datalist>
+        <div class="hints" id="route-hints"></div>
       </div>
       <div>
         <label>Куда едет (конечная)</label>
@@ -311,6 +342,7 @@
     const updatedAtEl = document.getElementById("updated-at");
     const routeInputEl = document.getElementById("route-input");
     const routeSuggestEl = document.getElementById("route-suggest");
+    const routeHintsEl = document.getElementById("route-hints");
     const terminusOptionsEl = document.getElementById("terminus-options");
     const heroRouteEl = document.getElementById("hero-route");
     const heroDirectionEl = document.getElementById("hero-direction");
@@ -319,6 +351,7 @@
     const favoritesEl = document.getElementById("favorites");
     const stopInputEl = document.getElementById("stop-input");
     const stopSuggestEl = document.getElementById("stop-suggest");
+    const stopHintsEl = document.getElementById("stop-hints");
 
     const mockStops = [
       { id: "stop_1", name: "Площадь Ленина (Уфа)", coords: { lat: 54.7349, lon: 55.9578 } },
@@ -415,6 +448,7 @@
     let stopMarkers = [];
     let transportMarkers = [];
     let selectedTerminus = null;
+    let availableRoutes = [];
 
     const favoriteStops = new Set();
 
@@ -456,10 +490,32 @@
         .join("");
     }
 
+    function renderStopHints(query = "") {
+      const q = query.toLowerCase();
+      const matches = (q
+        ? allStops().filter((stop) => stop.name.toLowerCase().includes(q))
+        : allStops()
+      ).slice(0, 6);
+      if (!matches.length) {
+        stopHintsEl.classList.remove("visible");
+        stopHintsEl.innerHTML = "";
+        return;
+      }
+      stopHintsEl.innerHTML = matches
+        .map(
+          (stop) => `
+            <div class="hint-item" data-id="${stop.id}">${stop.name}</div>
+          `
+        )
+        .join("");
+      stopHintsEl.classList.add("visible");
+    }
+
     function setSelectedStop(stop) {
       const fallback = mockStops[0];
       selectedStop = stop || fallback;
       stopInputEl.value = selectedStop.name;
+      stopHintsEl.classList.remove("visible");
     }
 
     function populateStops() {
@@ -471,7 +527,14 @@
       document.getElementById("refresh").addEventListener("click", () => updateArrivalList(true));
       document.getElementById("favorite").addEventListener("click", toggleFavorite);
       stopInputEl.addEventListener("input", handleStopInput);
-      routeInputEl.addEventListener("input", () => updateArrivalList());
+      stopInputEl.addEventListener("focus", () => renderStopHints(stopInputEl.value.trim()));
+      stopInputEl.addEventListener("blur", () => setTimeout(() => stopHintsEl.classList.remove("visible"), 120));
+      routeInputEl.addEventListener("input", () => {
+        renderRouteHints(routeInputEl.value.trim());
+        updateArrivalList();
+      });
+      routeInputEl.addEventListener("focus", () => renderRouteHints(routeInputEl.value.trim()));
+      routeInputEl.addEventListener("blur", () => setTimeout(() => routeHintsEl.classList.remove("visible"), 120));
       terminusOptionsEl.addEventListener("click", (e) => {
         if (e.target.tagName === "BUTTON") {
           selectedTerminus = e.target.dataset.terminus;
@@ -480,10 +543,30 @@
           updateArrivalList();
         }
       });
+      stopHintsEl.addEventListener("click", (e) => {
+        const target = e.target.closest(".hint-item");
+        if (!target) return;
+        const stop = allStops().find((s) => s.id === target.dataset.id);
+        if (stop) {
+          setSelectedStop(stop);
+          flyToStop(stop);
+          updateArrivalList(true);
+        }
+        stopHintsEl.classList.remove("visible");
+      });
+      routeHintsEl.addEventListener("click", (e) => {
+        const target = e.target.closest(".hint-item");
+        if (!target?.dataset.route) return;
+        routeInputEl.value = target.dataset.route;
+        renderRouteHints(routeInputEl.value.trim());
+        updateArrivalList();
+        routeHintsEl.classList.remove("visible");
+      });
     }
 
     async function handleStopInput() {
       const query = stopInputEl.value.trim();
+      renderStopHints(query);
       const exactMatch = findStopByName(query);
       if (exactMatch) {
         setSelectedStop(exactMatch);
@@ -499,6 +582,7 @@
         const merged = [...dynamicStopOptions, ...remote];
         dynamicStopOptions = Array.from(new Map(merged.map((s) => [s.id, s])).values());
         syncStopSuggest();
+        renderStopHints(query);
         const best = findStopByName(query) || remote[0];
         setSelectedStop(best);
         flyToStop(best);
@@ -550,7 +634,30 @@
         new Set(arrivals.map((item) => normalizeRouteId(item.route)).filter(Boolean))
       );
       const routes = Array.from(new Set([...ufaRouteNumbers, ...dynamicRoutes]));
+      availableRoutes = routes;
       routeSuggestEl.innerHTML = routes.map((r) => `<option value="${r}"></option>`).join("");
+      renderRouteHints(routeInputEl.value.trim());
+    }
+
+    function renderRouteHints(query = "") {
+      const q = query.toLowerCase();
+      const shouldShow = document.activeElement === routeInputEl || Boolean(q);
+      if (!shouldShow) {
+        routeHintsEl.classList.remove("visible");
+        routeHintsEl.innerHTML = "";
+        return;
+      }
+      const matches = (q
+        ? availableRoutes.filter((r) => r.toLowerCase().includes(q))
+        : availableRoutes
+      ).slice(0, 8);
+      if (!matches.length) {
+        routeHintsEl.innerHTML = '<div class="hint-item">Нет совпадений</div>';
+        routeHintsEl.classList.add("visible");
+        return;
+      }
+      routeHintsEl.innerHTML = matches.map((r) => `<div class="hint-item" data-route="${r}">${r}</div>`).join("");
+      routeHintsEl.classList.add("visible");
     }
 
     function extractTerminiFromTitle(title = "") {
@@ -618,8 +725,12 @@
           .map((f, idx) => {
             const coords = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
             const name = f.properties?.name || f.properties?.description || `Остановка ${idx + 1}`;
-            const city = (f.properties?.CompanyMetaData?.address || "").toLowerCase();
-            if (!city.includes(CITY_NAME.toLowerCase())) return null;
+            const address = f.properties?.CompanyMetaData?.address || f.properties?.description || "";
+            const locality = (f.properties?.GeoObjectMetaData?.Address?.Components || [])
+              .find((c) => c.kind === "locality")?.name;
+            const cityString = `${address} ${locality || ""} ${f.properties?.description || ""}`.toLowerCase();
+            const withinUfa = distanceKm(DEFAULT_COORDS, coords) <= UFA_RADIUS_KM;
+            if (!cityString.includes(CITY_NAME.toLowerCase()) && !withinUfa) return null;
             return {
               id: `remote_${f.id || idx}`,
               name,
