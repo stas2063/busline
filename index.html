@@ -252,13 +252,15 @@
         <select id="route-select"></select>
       </div>
       <div>
-        <label for="route-input">Номер маршрута (Уфа)</label>
+        <label for="route-input">Номер маршрута</label>
         <input
           id="route-input"
           type="text"
           list="route-suggest"
-          placeholder="Введите номер маршрута"
+          placeholder="Введите номер маршрута цифрами"
           autocomplete="off"
+          inputmode="numeric"
+          pattern="[0-9]{1,4}[А-Яа-яA-Za-z]?"
         />
         <datalist id="route-suggest"></datalist>
       </div>
