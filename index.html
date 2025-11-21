@@ -473,14 +473,68 @@
     }
 
     async function fetchNearbyTransport(stopId, coords) {
-      // Заготовка под реальный запрос. Здесь оставляем пример формата.
-      // const url = `https://api.rasp.yandex.net/v3.0/nearest_stations/?apikey=${API_KEY}&format=json&lat=${coords.lat}&lon=${coords.lon}&distance=1000`;
-      // const response = await fetch(url);
-      // const data = await response.json();
-      // return normalize(data);
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(mockTransport.filter((t) => t.stopId === stopId)), 300);
-      });
+      const stop = mockStops.find((s) => s.id === stopId);
+      const point = coords || stop?.coords || DEFAULT_COORDS;
+
+      try {
+        const nearestUrl = new URL("https://api.rasp.yandex.net/v3.0/nearest_stations/");
+        nearestUrl.searchParams.set("apikey", API_KEY);
+        nearestUrl.searchParams.set("format", "json");
+        nearestUrl.searchParams.set("lat", point.lat);
+        nearestUrl.searchParams.set("lon", point.lon);
+        nearestUrl.searchParams.set("distance", 1500);
+        nearestUrl.searchParams.set("transport_types", "bus,tram,trol");
+
+        const nearestRes = await fetch(nearestUrl);
+        if (!nearestRes.ok) throw new Error(`Nearest request failed: ${nearestRes.status}`);
+        const nearest = await nearestRes.json();
+        const station = nearest.stations?.[0];
+        if (!station?.code) throw new Error("Нет ближайших станций от API");
+
+        const scheduleUrl = new URL("https://api.rasp.yandex.net/v3.0/schedule/");
+        scheduleUrl.searchParams.set("apikey", API_KEY);
+        scheduleUrl.searchParams.set("format", "json");
+        scheduleUrl.searchParams.set("station", station.code);
+        scheduleUrl.searchParams.set("transport_types", "bus,tram,trol");
+        scheduleUrl.searchParams.set("event", "departure");
+
+        const scheduleRes = await fetch(scheduleUrl);
+        if (!scheduleRes.ok) throw new Error(`Schedule request failed: ${scheduleRes.status}`);
+        const schedule = await scheduleRes.json();
+
+        const now = Date.now();
+        const arrivals = (schedule.schedule || [])
+          .map((item) => {
+            const etaMinutes = Math.max(
+              0,
+              Math.round((new Date(item.departure).getTime() - now) / 60000)
+            );
+            const directionName = (item.thread?.direction || "").toLowerCase();
+            const goesToCenter = directionName.includes("центр") || directionName.includes("center");
+            return {
+              route: `${item.thread?.number || item.thread?.title || "Маршрут"} (${directionName || "направление"})`,
+              eta: etaMinutes,
+              direction: goesToCenter ? "to" : "from",
+              stopId: stopId,
+              lat: station.latitude,
+              lon: station.longitude
+            };
+          })
+          .filter((item) => Number.isFinite(item.eta))
+          .slice(0, 10);
+
+        if (arrivals.length) {
+          setStatus(`Данные по API Яндекс: ${station.title}`, "info");
+          return arrivals;
+        }
+        throw new Error("Пустое расписание");
+      } catch (error) {
+        console.warn("API fallback:", error);
+        setStatus("Используем локальные данные (ошибка API)", "warning");
+        return new Promise((resolve) => {
+          setTimeout(() => resolve(mockTransport.filter((t) => t.stopId === stopId)), 300);
+        });
+      }
     }
 
     async function updateArrivalList(force = false, coords = DEFAULT_COORDS) {
