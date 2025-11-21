@@ -249,8 +249,14 @@
         <select id="route-select"></select>
       </div>
       <div>
-        <label for="route-input">Номер маршрута</label>
-        <input id="route-input" type="text" list="route-suggest" placeholder="Например, 18" autocomplete="off" />
+        <label for="route-input">Номер маршрута (Уфа)</label>
+        <input
+          id="route-input"
+          type="text"
+          list="route-suggest"
+          placeholder="Введите номер маршрута"
+          autocomplete="off"
+        />
         <datalist id="route-suggest"></datalist>
       </div>
       <div>
@@ -322,8 +328,12 @@
       { route: "69 (в центр)", eta: 5, direction: "to", stopId: "stop_2", lat: 54.7396, lon: 55.9734 },
       { route: "69 (из центра)", eta: 9, direction: "from", stopId: "stop_2", lat: 54.7392, lon: 55.9718 },
       { route: "110с (в центр)", eta: 7, direction: "to", stopId: "stop_3", lat: 54.7412, lon: 55.9856 },
-      { route: "110с (из центра)", eta: 12, direction: "from", stopId: "stop_3", lat: 54.7407, lon: 55.9844 }
+      { route: "110с (из центра)", eta: 12, direction: "from", stopId: "stop_3", lat: 54.7407, lon: 55.9844 },
+      { route: "273 (в центр)", eta: 6, direction: "to", stopId: "stop_2", lat: 54.7399, lon: 55.9731 },
+      { route: "273 (из центра)", eta: 13, direction: "from", stopId: "stop_2", lat: 54.7391, lon: 55.9721 }
     ];
+
+    const ufaRouteNumbers = ["1", "10", "18", "21", "27", "69", "74", "110с", "163", "273"];
 
     let map;
     let stopMarkers = [];
@@ -416,9 +426,10 @@
     }
 
     function updateRouteSuggestions(arrivals = []) {
-      const routes = Array.from(
+      const dynamicRoutes = Array.from(
         new Set(arrivals.map((item) => normalizeRouteId(item.route)).filter(Boolean))
       );
+      const routes = Array.from(new Set([...ufaRouteNumbers, ...dynamicRoutes]));
       routeSuggestEl.innerHTML = routes.map((r) => `<option value="${r}"></option>`).join("");
     }
 
